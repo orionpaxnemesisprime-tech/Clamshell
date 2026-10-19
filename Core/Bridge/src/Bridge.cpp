@@ -8,6 +8,7 @@
 #include "BridgeInternal.h"
 
 #include "Args.h"
+#include "FATStorage.h"
 #include "GPU_Soft.h"
 #include "NDS.h"
 #include "NDSCart.h"
@@ -73,7 +74,8 @@ void clamshell_core_set_context(ClamshellCore *core, void *context)
 ClamshellLoadResult clamshell_core_load_rom(ClamshellCore *core,
                                             const uint8_t *rom, uint32_t romLength,
                                             const uint8_t *save, uint32_t saveLength,
-                                            const char *romName)
+                                            const char *romName,
+                                            const char *sdCardPath, uint64_t sdCardSize)
 {
     if (!rom || romLength == 0)
         return ClamshellLoadResultInvalidROM;
@@ -85,6 +87,8 @@ ClamshellLoadResult clamshell_core_load_rom(ClamshellCore *core,
         std::memcpy(cartArgs.SRAM.get(), save, saveLength);
         cartArgs.SRAMLength = saveLength;
     }
+    if (sdCardPath && *sdCardPath)
+        cartArgs.SDCard = FATStorageArgs { sdCardPath, sdCardSize, false, std::nullopt };
 
     auto cart = NDSCart::ParseROM(rom, romLength, core, std::move(cartArgs));
     if (!cart)

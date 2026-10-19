@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import ClamshellBridge
+import Foundation
 
 /// Buttons on the emulated handheld.
 public struct EmulatorKeys: OptionSet, Sendable, Hashable {
@@ -25,6 +26,8 @@ public enum EmulatorError: Error, Equatable {
     case invalidROM
     case saveStateFailed
     case loadStateFailed
+    /// The session isn't running a game.
+    case notRunning
 }
 
 /// Two 256x192 screens of 32-bit BGRA pixels (alpha undefined; treat as opaque).
@@ -121,12 +124,21 @@ public final class EmulatorCore {
         clamshell_core_destroy(handle)
     }
 
+    /// Size of the per-game SD card image homebrew sees (sparse on disk, so mostly free).
+    public static let defaultSDCardSize: UInt64 = 256 * 1_024 * 1_024
+
     /// Inserts a cartridge image, resets and direct-boots it. Call `start()` afterwards.
-    public func loadROM(_ rom: [UInt8], save: [UInt8]? = nil, name: String = "game.nds") throws(EmulatorError) {
+    ///
+    /// - Parameter sdCard: FAT image file exposed to homebrew via DLDI (created on first use).
+    ///   Homebrew built with libnds usually needs one to read its own data.
+    public func loadROM(_ rom: [UInt8], save: [UInt8]? = nil, name: String = "game.nds",
+                        sdCard: URL? = nil) throws(EmulatorError) {
+        let sdPath = sdCard?.path(percentEncoded: false)
         let result = rom.withUnsafeBufferPointer { romBuffer in
             withOptionalBuffer(save) { saveBuffer in
                 clamshell_core_load_rom(handle, romBuffer.baseAddress, UInt32(romBuffer.count),
-                                        saveBuffer?.baseAddress, UInt32(saveBuffer?.count ?? 0), name)
+                                        saveBuffer?.baseAddress, UInt32(saveBuffer?.count ?? 0), name,
+                                        sdPath, sdPath == nil ? 0 : Self.defaultSDCardSize)
             }
         }
         guard result == ClamshellLoadResultOK else { throw .invalidROM }

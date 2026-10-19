@@ -143,6 +143,13 @@ Notes:
 
 ## Audio
 
+- **Swift 6 isolation trap:** never build a Core Audio render block (or an input tap) inside
+  a `@MainActor` type's methods. The closure inherits main-actor isolation, and the runtime
+  traps (SIGTRAP in `_swift_task_checkIsolatedSwift` on `AURemoteIO::IOThread`) the first time
+  audio renders. Unit tests won't catch it. Build such blocks in a `nonisolated static`
+  factory, as `AudioOutput.makeSourceNode` does. The app target defaults to `MainActor`
+  isolation, so this applies to all app code too.
+
 - Set `NDSArgs.OutputSampleRate` to the hardware rate from `AVAudioSession` (usually
   48000). `SPU::ReadOutput(s16*, samples)` gives interleaved stereo `s16`.
 - Emu thread → **lock-free single-producer/single-consumer ring buffer** → an
@@ -164,7 +171,12 @@ Notes:
   the count; it must never block.
 - Only request mic permission on the first `Mic_Start` (needs `NSMicrophoneUsageDescription`).
   If permission is denied, feed silence and provide a "blow" button (the Qt frontend has
-  `mic_blow.h`).
+  `mic_blow.h`; not built yet).
+- As built: `MicrophoneInput` (an `AVAudioEngine` tap, then `AVAudioConverter`, then a
+  `MonoSampleRing`) is passed to `EmulationSession(microphone:)`. The session's core delegate
+  opens and closes it on the game's `Mic_Start`/`Mic_Stop`. It switches the audio session to
+  `.playAndRecord` while open, and `AudioOutput` restarts itself on the resulting engine
+  configuration change.
 
 ## Input and touch mapping
 
@@ -211,6 +223,15 @@ Notes:
   app termination.
 - Key saves by the ROM's SHA-1 (not file name), and store them in the app container
   (Documents/Saves, exposed through Files). Provide import and export.
+- **Homebrew SD card (DLDI)**: libnds homebrew reads its files through a DLDI SD card.
+  Without one, ds-craft stops with "error initializing FAT". Each game gets
+  `Application Support/SDCards/<rom sha1>.img` (256 MB; APFS stores it sparsely, so it's
+  only a few MB on disk). It's passed as `loadROM(sdCard:)`, and melonDS creates and formats
+  it. Retail carts ignore it.
+- **Save states** (as built): `EmulationSession.saveState()`/`loadState(_:)` are async
+  commands drained on the emulation thread, also while paused. `StateStore` writes
+  `Documents/States/<rom sha1>/slot-N.state` (CLSS header, ROM check, LZFSE-compressed:
+  raw states are about 19 MB) plus a PNG thumbnail.
 - **Save states**: run them only on the emu thread, between frames. Create a
   `Savestate(buffer, size, save)` and call `nds.DoSavestate(&st)`, then check `st.Error`.
   Prefix each state with a Clamshell header (magic, Clamshell version, melonDS commit, ROM
@@ -268,3 +289,8 @@ Notes:
   Keep frame counts small; a test that needs more than a few seconds of emulated time belongs
   in a separate, tagged slow suite.
 - Never use commercial ROMs in tests, CI, screenshots or bug reproductions.
+- **External homebrew smoke test (local only):** `CLAMSHELL_EXTERNAL_ROM=/path/game.nds swift
+  test --filter ExternalROMTests`. It boots with an SD image, runs 600 frames, reports fps,
+  and writes a PNG of both screens. It's verified with ds-craft beta 1.7.1 (MIT,
+  github.com/moltony/ds-craft), which reaches its title and world-select screens. Keep such
+  ROMs out of the repo.

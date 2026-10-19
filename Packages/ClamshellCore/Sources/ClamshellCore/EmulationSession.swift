@@ -20,7 +20,21 @@ public final class EmulationSession: Sendable {
     public let audio: AudioRingBuffer
     public let audioSampleRate: Double
 
+    /// Work that must run on the emulation thread between frames.
+    private enum Command: Sendable {
+        case saveState(CheckedContinuation<[UInt8], any Error>)
+        case loadState([UInt8], CheckedContinuation<Void, any Error>)
+
+        func fail(_ error: EmulatorError) {
+            switch self {
+            case .saveState(let continuation): continuation.resume(throwing: error)
+            case .loadState(_, let continuation): continuation.resume(throwing: error)
+            }
+        }
+    }
+
     private struct Control: Sendable {
+        var commands: [Command] = []
         var keys: EmulatorKeys = []
         var touch: (x: Int, y: Int)?
         var lidClosed = false
@@ -35,8 +49,12 @@ public final class EmulationSession: Sendable {
     /// Signalled by the current run's thread when it exits (one semaphore per run).
     private let runFinished = Mutex<DispatchSemaphore?>(nil)
 
-    public init(audioSampleRate: Double = 48_000) {
+    /// Where microphone samples come from when a game opens the mic (nil: silence).
+    public let microphone: (any MicrophoneSource)?
+
+    public init(audioSampleRate: Double = 48_000, microphone: (any MicrophoneSource)? = nil) {
         self.audioSampleRate = audioSampleRate
+        self.microphone = microphone
         audio = AudioRingBuffer()
     }
 
@@ -51,11 +69,11 @@ public final class EmulationSession: Sendable {
     public typealias SaveHandler = @Sendable (_ saveMemory: [UInt8]) -> Void
 
     /// Validates the ROM on the calling thread, then starts the emulation thread.
-    public func start(rom: [UInt8], save: [UInt8]? = nil, name: String,
+    public func start(rom: [UInt8], save: [UInt8]? = nil, name: String, sdCard: URL? = nil,
                       saveDebounce: Duration = .seconds(1),
                       onSave: SaveHandler? = nil) throws(EmulatorError) {
         stop()
-        // Validate synchronously so callers get a load error immediately.
+        // Validate synchronously so callers get a load error immediately (no SD card needed).
         try EmulatorCore(audioSampleRate: audioSampleRate).loadROM(rom, save: save, name: name)
 
         control.withLock { $0 = Control(running: true) }
@@ -65,7 +83,7 @@ public final class EmulationSession: Sendable {
         let finished = DispatchSemaphore(value: 0)
         runFinished.withLock { $0 = finished }
         let thread = Thread { [self] in
-            run(rom: rom, save: save, name: name, saveDebounce: saveDebounce, onSave: onSave)
+            run(rom: rom, save: save, name: name, sdCard: sdCard, saveDebounce: saveDebounce, onSave: onSave)
             finished.signal()
         }
         thread.name = "Clamshell emulation"
@@ -101,16 +119,51 @@ public final class EmulationSession: Sendable {
     public func releaseTouch() { control.withLock { $0.touch = nil } }
     public func setLidClosed(_ closed: Bool) { control.withLock { $0.lidClosed = closed } }
 
+    // MARK: Save states (run on the emulation thread between frames, also while paused)
+
+    /// Captures the whole machine state.
+    public func saveState() async throws -> [UInt8] {
+        try await withCheckedThrowingContinuation { continuation in
+            enqueue(.saveState(continuation))
+        }
+    }
+
+    /// Restores a state from `saveState()`. On failure the machine is left untouched.
+    public func loadState(_ state: [UInt8]) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
+            enqueue(.loadState(state, continuation))
+        }
+    }
+
+    private func enqueue(_ command: Command) {
+        let accepted = control.withLock { control in
+            guard control.running, !control.stopRequested else { return false }
+            control.commands.append(command)
+            return true
+        }
+        guard accepted else { return command.fail(.notRunning) }
+        wake.signal()
+    }
+
     // MARK: Emulation thread
 
-    private func run(rom: [UInt8], save: [UInt8]?, name: String,
+    private func run(rom: [UInt8], save: [UInt8]?, name: String, sdCard: URL?,
                      saveDebounce: Duration, onSave: SaveHandler?) {
-        defer { control.withLock { $0.running = false } }
+        defer {
+            // Fail anything still queued so no caller waits forever.
+            let leftover = control.withLock { control in
+                control.running = false
+                defer { control.commands = [] }
+                return control.commands
+            }
+            leftover.forEach { $0.fail(.notRunning) }
+        }
 
         let core = EmulatorCore(audioSampleRate: audioSampleRate)
-        let saves = SaveTracker()
+        let saves = CoreEvents(microphone: microphone)
         core.delegate = saves
-        do { try core.loadROM(rom, save: save, name: name) } catch { return }
+        defer { if saves.microphoneOpen { microphone?.stop() } }
+        do { try core.loadROM(rom, save: save, name: name, sdCard: sdCard) } catch { return }
         core.start()
 
         // Hands the current save memory to `onSave` if the game wrote to it.
@@ -130,8 +183,30 @@ public final class EmulationSession: Sendable {
         var windowFrames = 0
 
         while true {
-            let wanted = control.withLock { $0 }
-            if wanted.stopRequested { break }
+            let wanted = control.withLock { control in
+                defer { control.commands = [] }
+                return control
+            }
+            if wanted.stopRequested {
+                wanted.commands.forEach { $0.fail(.notRunning) }
+                break
+            }
+
+            for command in wanted.commands {
+                switch command {
+                case .saveState(let continuation):
+                    do { continuation.resume(returning: try core.saveState()) }
+                    catch { continuation.resume(throwing: error) }
+                case .loadState(let state, let continuation):
+                    do {
+                        try core.loadState(state)
+                        frames.publish { top, bottom in core.copyFrame(top: top, bottom: bottom) }
+                        continuation.resume()
+                    } catch {
+                        continuation.resume(throwing: error)
+                    }
+                }
+            }
 
             if wanted.paused {
                 flushSave(force: true) // pausing usually means the app is going to the background
@@ -186,11 +261,33 @@ public final class EmulationSession: Sendable {
     }
 }
 
-/// Lives on the emulation thread; remembers when the game last wrote its battery save.
-private final class SaveTracker: EmulatorCoreDelegate {
+/// Lives on the emulation thread: remembers battery-save writes and forwards the microphone.
+private final class CoreEvents: EmulatorCoreDelegate {
     var lastWrite: ContinuousClock.Instant?
+    private(set) var microphoneOpen = false
+    private let microphone: (any MicrophoneSource)?
+
+    init(microphone: (any MicrophoneSource)?) {
+        self.microphone = microphone
+    }
 
     func emulatorCore(_ core: EmulatorCore, didWriteSave saveMemory: UnsafeRawBufferPointer, range: Range<Int>) {
         lastWrite = .now
+    }
+
+    func emulatorCoreDidStartMicrophone(_ core: EmulatorCore) {
+        guard !microphoneOpen else { return }
+        microphoneOpen = true
+        microphone?.start()
+    }
+
+    func emulatorCoreDidStopMicrophone(_ core: EmulatorCore) {
+        guard microphoneOpen else { return }
+        microphoneOpen = false
+        microphone?.stop()
+    }
+
+    func emulatorCore(_ core: EmulatorCore, readMicrophoneInto buffer: UnsafeMutableBufferPointer<Int16>) -> Int {
+        microphone?.read(into: buffer) ?? 0
     }
 }

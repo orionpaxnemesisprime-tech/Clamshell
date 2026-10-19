@@ -83,10 +83,15 @@ void clamshell_core_set_context(ClamshellCore *core, void *context);
 
 /// Inserts a cartridge image (copied) with optional existing save memory (copied), resets
 /// and direct-boots it. Call clamshell_core_start afterwards.
+///
+/// `sdCardPath` (may be NULL) is a FAT disk image exposed to homebrew through DLDI; melonDS
+/// creates and formats it on first use. `sdCardSize` is its size in bytes (0: auto). Ignored
+/// for retail cartridges.
 ClamshellLoadResult clamshell_core_load_rom(ClamshellCore *core,
                                             const uint8_t *rom, uint32_t romLength,
                                             const uint8_t *save, uint32_t saveLength,
-                                            const char *romName);
+                                            const char *romName,
+                                            const char *sdCardPath, uint64_t sdCardSize);
 void clamshell_core_start(ClamshellCore *core);
 void clamshell_core_stop(ClamshellCore *core);
 void clamshell_core_reset(ClamshellCore *core);

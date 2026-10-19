@@ -8,6 +8,7 @@
 @   +0x0C  last 12-bit microphone sample (sampled only while X is held)
 @   +0x10  number of microphone samples taken
 @   +0x14  ARM7 loop counter
+@   +0x18  1 while the lid (hinge) is closed, else 0
 @ A 440 Hz square wave plays on sound channel 8 while the pen is down.
 @ Note: raw-to-pixel conversion normally uses the firmware's calibration data; tests and the
 @ ARM9 side rely on melonDS's raw = pixel << 4 mapping.
@@ -38,6 +39,9 @@ _start:
 loop:
     ldr     r0, =0x04000136         @ EXTKEYIN (active-low)
     ldrh    r4, [r0]
+    mov     r0, r4, lsr #7          @ bit 7: hinge closed when set
+    and     r0, r0, #1
+    str     r0, [r9, #0x18]
 
     tst     r4, #0x40               @ bit 6: pen down when clear
     bne     pen_up

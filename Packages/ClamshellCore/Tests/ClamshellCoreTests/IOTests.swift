@@ -15,6 +15,7 @@ struct IOTests {
         static let micSample = base + 0x0C
         static let micCount = base + 0x10
         static let arm7Loops = base + 0x14
+        static let lidClosed = base + 0x18
     }
 
     let delegate = RecordingDelegate()
@@ -39,6 +40,19 @@ struct IOTests {
         core.releaseTouch()
         core.run(frames: 3)
         #expect(core.debugRead32(Shared.penDown) == 0)
+    }
+
+    @Test func lidReachesTheHingeBitAndTheGameSeesIt() throws {
+        core.isLidClosed = true
+        core.run(frames: 3)
+        #expect(core.debugRead32(Shared.lidClosed) == 1)
+        var frame = ScreenFrame()
+        try #require(core.copyFrame(into: &frame))
+        #expect(frame.top[0] & 0xFF > 0xF0 && (frame.top[0] >> 16) & 0xFF == 0, "top screen blue while closed")
+
+        core.isLidClosed = false
+        core.run(frames: 3)
+        #expect(core.debugRead32(Shared.lidClosed) == 0)
     }
 
     @Test func touchCoordinatesAreClamped() {

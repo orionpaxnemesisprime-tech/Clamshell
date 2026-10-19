@@ -2,8 +2,8 @@
 @ SPDX-License-Identifier: GPL-3.0-or-later
 @
 @ Engine A shows VRAM bank A on the bottom screen (dark grey); the ARM9 paints a white 3x3
-@ dot wherever the ARM7 reports the pen. Engine B fills the top screen with green, or red
-@ while any button (A, B, Select, Start, D-pad, L, R) is held.
+@ dot wherever the ARM7 reports the pen. Engine B fills the top screen with green, red
+@ while any button (A, B, Select, Start, D-pad, L, R) is held, or blue while the lid is closed.
 @ Writes 0xC1A55E11 to 0x02200000 once setup has finished.
 
     .syntax unified
@@ -49,7 +49,8 @@ clear:
     ldr     r7, =0x06800000
     ldr     r6, =0x7FFF             @ white
 loop:
-    @ Top screen: red while any KEYINPUT button is held, otherwise green.
+    @ Top screen: blue while the lid is closed, red while any KEYINPUT button is held,
+    @ otherwise green.
     ldr     r0, =0x04000130
     ldrh    r0, [r0]
     ldr     r1, =0x3FF
@@ -57,6 +58,9 @@ loop:
     cmp     r0, r1
     ldrne   r1, =0x001F
     ldreq   r1, =0x03E0
+    ldr     r0, [r9, #0x18]         @ lid flag from the ARM7
+    cmp     r0, #0
+    ldrne   r1, =0x7C00
     ldr     r0, =0x05000400
     strh    r1, [r0]
 
