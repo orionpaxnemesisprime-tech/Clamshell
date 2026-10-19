@@ -11,12 +11,20 @@ SwiftUI shell (MainActor)   layouts per fold posture · settings · library · l
   │  input snapshot / command queue (Mutex/Atomic)         ▲ latest frame slot (atomic)
   ▼                                                        │
 Emulation thread (dedicated Thread, .userInteractive)  ── RunFrame @ 59.8261 Hz
-  │  Swift wrapper (nonisolated, not Sendable)
+  │  EmulatorCore (Packages/ClamshellCore; nonisolated, not Sendable)
   ▼
-C++ bridge target  ── implements melonDS::Platform::*, plain-type facade for Swift
+C header ClamshellBridge.h ── the only API Swift sees (no C++ interop)
   ▼
-MelonDSCore.xcframework  ── melonDS `core` + teakra, static, ENABLE_JIT=OFF, no Qt/SDL/OpenGL
+ClamshellBridge.xcframework ── Core/Bridge (facade + melonDS::Platform::*) + melonDS core
+                               + teakra; static, ENABLE_JIT=OFF, no Qt/SDL/OpenGL
 ```
+
+Repo layout:
+- `Vendor/melonDS`: pinned submodule.
+- `Core/Bridge`: C++ bridge and its CMake build.
+- `Scripts/`: `build-core.sh` and `make-test-rom.py`.
+- `Packages/ClamshellCore`: Swift API, tests and test ROMs.
+- `Clamshell/`: the app.
 
 - **Video**: Metal draws two 256x192 BGRA screens from a triple-buffered frame store. The
   renderer never waits on the core.
@@ -57,12 +65,9 @@ All geometry comes from `GeometryReader`/`onGeometryChange`. Never hardcode devi
   handling) and wrap it.
 - The project uses Xcode 27's `Clamshell.xcodeproj/project.xcproj` format. Scheme:
   `Clamshell`.
-- **Reconcile when app code starts** (left unchanged in the setup session). The project file
-  currently has:
-  - `SWIFT_VERSION = 5.0`; should be Swift 6 mode;
-  - `IPHONEOS_DEPLOYMENT_TARGET = 27.2`; should be 27.0 unless 27.1+ APIs are wanted
-    unguarded;
-  - `TARGETED_DEVICE_FAMILY = 1,2`; iPad is included, so decide whether to keep it.
+- Project settings: `SWIFT_VERSION = 6.0` and `IPHONEOS_DEPLOYMENT_TARGET = 27.0`. Guard
+  iOS 27.1 fold/hinge APIs with `#available`. `TARGETED_DEVICE_FAMILY = 1,2` still includes
+  iPad; whether to keep it is an open decision.
 
 ## Licensing (summary; full rules in the `app-store-compliance` skill)
 
@@ -90,9 +95,14 @@ All geometry comes from `GeometryReader`/`onGeometryChange`. Never hardcode devi
 
 ## Build and test
 
-- Through MobileBuildMCP (preferred for agents), or directly:
+- First checkout: `git submodule update --init`, `brew install cmake ninja`, then
+  `Scripts/build-core.sh`. Re-run the script after changing `Core/Bridge` or `Vendor/melonDS`.
+- Core tests (headless Swift Testing, homebrew ROMs built from source; see `ds-emulation`):
+  - Host: `cd Packages/ClamshellCore && swift test`
+  - iOS Simulator: `xcodebuild test -scheme ClamshellCore -destination 'platform=iOS Simulator,name=iPhone Duo'`
+    (run in `Packages/ClamshellCore`)
+- App, through MobileBuildMCP (preferred for agents) or directly:
   `xcodebuild -project Clamshell.xcodeproj -scheme Clamshell -destination 'platform=iOS Simulator,name=iPhone Duo' build`
-- Core tests are headless Swift Testing with open-source homebrew ROMs (see `ds-emulation`).
 
 ## Agent tooling provenance
 

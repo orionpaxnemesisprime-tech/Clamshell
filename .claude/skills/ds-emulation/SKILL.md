@@ -51,45 +51,47 @@ The rules are fixed:
   **No GDB stub**: `-DENABLE_GDBSTUB=OFF`.
 - Static only. Build the `core` target (`add_library(core STATIC ...)` in `src/CMakeLists.txt`).
 
-Build one slice per platform and package them as an XCFramework:
+Build it with **`Scripts/build-core.sh [Release|Debug]`** (needs cmake and ninja from
+Homebrew). The script:
 
-```sh
-# Device slice. Repeat with -DCMAKE_OSX_SYSROOT=iphonesimulator, and a macOS slice
-# (no CMAKE_SYSTEM_NAME) so `swift test` can run on the host.
-cmake -S Vendor/melonDS -B build/ios -G Ninja \
-  -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos \
-  -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=27.0 \
-  -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF \
-  -DENABLE_JIT=OFF -DBUILD_QT_SDL=OFF -DENABLE_OGLRENDERER=OFF -DENABLE_GDBSTUB=OFF
-cmake --build build/ios --target core
-# Merge libcore.a + libteakra.a with libtool -static, then:
-xcodebuild -create-xcframework -library <ios>.a -headers <hdrs> \
-  -library <sim>.a -headers <hdrs> -library <macos>.a -headers <hdrs> -output MelonDSCore.xcframework
-```
+- configures `Core/Bridge/CMakeLists.txt`, which pulls in `Vendor/melonDS` and forces the
+  forbidden options off (JIT, Qt/SDL, OpenGL, GDB stub, and LTO, since LLVM bitcode in
+  archives is fragile);
+- builds iOS device, iOS Simulator and macOS (host-test) arm64 slices;
+- merges `libClamshellBridge.a`, `libcore.a` and `libteakra.a` with `libtool`;
+- **fails if any `ARMJIT`/`JitBlock` symbol is defined, or `mprotect`, `vm_protect`,
+  `pthread_jit_write_protect_np` or `sys_icache_invalidate` is referenced**. A JIT-on control
+  build was verified to trip it;
+- writes `Packages/ClamshellCore/Artifacts/ClamshellBridge.xcframework` (gitignored, about
+  30 MB).
 
-- Vendor melonDS as a **git submodule pinned to a commit**. Never track `master`. Record the
-  commit in `THIRD_PARTY_LICENSES`.
+Notes:
+
+- Re-run the script after any change under `Core/Bridge/` or `Vendor/melonDS`.
+- melonDS is a **git submodule pinned to a commit** (currently `906e9eb`). Never track
+  `master`. Record the commit in `THIRD_PARTY_LICENSES`.
 - Keep Clamshell patches to melonDS minimal, as a patch series under `Vendor/patches/`, and
   upstream them where possible.
 - The build script lives in the repo (for example `Scripts/build-melonds.sh`) and is
   reproducible, because GPL "corresponding source" includes the scripts used to build.
 
-## Swift / C++ interop
+## Swift / C++ interop (as built)
 
-- Keep melonDS headers away from Swift. They use `std::unique_ptr`, `std::function`,
-  templates and `NonStupidBitfield`, and importing them is slow and fragile.
-- Write a **thin C++ bridge target** (for example `ClamshellCoreBridge`) that owns
-  `melonDS::NDS` and exposes a small facade. Use only plain types: `uint32_t` key masks,
-  `int16_t*` buffers, POD structs, and `std::span`/pointer plus length.
-- Implement every `melonDS::Platform::*` function in that bridge. Route calls to Swift through a
-  table of C function pointers plus an opaque `void* userdata` (`NDS::UserData`), and use
-  `Unmanaged` on the Swift side. Swift must never implement C++ symbols directly.
-- Enable C++ interop (`.interoperabilityMode(.Cxx)`) only on the target that imports the bridge,
-  because the setting is viral. Everything above that target sees a pure-Swift API.
-- Make the facade a reference type with an explicit lifetime: `SWIFT_SHARED_REFERENCE` with
-  retain/release, or a non-copyable Swift wrapper. Don't expose copyable C++ classes that own
-  the machine.
-- C++ exceptions must not cross into Swift. Catch inside the bridge and return status codes.
+- Swift never sees C++. `Core/Bridge/` compiles inside the static library: `Bridge.cpp`
+  (owns `melonDS::NDS`) and `Platform.cpp` (every `melonDS::Platform::*` function). It
+  exposes a **plain C header**, `Core/Bridge/include/ClamshellBridge.h`, as module
+  `ClamshellBridge`. Swift imports it with no `.interoperabilityMode(.Cxx)` anywhere.
+- To add a capability:
+  1. extend the C header (plain types only: ints, pointers plus length, C enums and structs);
+  2. implement it in `Bridge.cpp`;
+  3. wrap it in `Packages/ClamshellCore/Sources/ClamshellCore/EmulatorCore.swift`;
+  4. run `Scripts/build-core.sh`.
+- Callbacks into Swift go through `ClamshellCoreCallbacks` (C function pointers plus a
+  `context`). `EmulatorCore` sets `context` to an unretained `Unmanaged` pointer to itself,
+  and the core never outlives it. `Platform::Log` has no per-instance userdata, so logging
+  uses the process-wide `clamshell_set_log_handler`.
+- C++ exceptions must not cross the C boundary. Catch inside the bridge and return a status.
+- `Bridge.cpp` contains `#error` if `JIT_ENABLED` is defined.
 
 ## Threading model
 
@@ -227,11 +229,21 @@ xcodebuild -create-xcframework -library <ios>.a -headers <hdrs> \
 - Tests drive the bridge with the soft renderer only: no Metal, no audio engine, no UI.
   Include a macOS slice in the XCFramework so the core suite runs with `swift test`. Run the
   iOS simulator suite through MobileBuildMCP or `xcodebuild test`.
-- **Test ROMs**: use only open-source homebrew whose licence allows redistribution. Prefer
-  ROMs built **in this repo from source** with BlocksDS/libnds, for example
-  `Tests/ROMs/<name>/`, built by a script with the outputs checked in plus their SHA-256.
-  Each ROM signals its result deterministically: it writes a magic word to a fixed main-RAM
-  address, or draws a known pattern. Third-party CPU test ROMs (for example the armwrestler
+- **Test ROMs**: use only open-source homebrew whose licence allows redistribution.
+  - Prefer ROMs built **in this repo from source**:
+    1. Write ARM assembly in `Packages/ClamshellCore/TestROMs/<name>/arm9.s` and `arm7.s`.
+    2. Run `python3 -I Scripts/make-test-rom.py Packages/ClamshellCore/TestROMs/<name>
+       Packages/ClamshellCore/Tests/ClamshellCoreTests/ROMs/<name>.nds`.
+    3. Check in both the sources and the `.nds`.
+  - The generator uses Xcode's clang. It rejects code with relocations and leaves the header
+    logo zeroed.
+  - Use BlocksDS/libnds when a test needs C, for example to drive the touchscreen controller
+    from the ARM7.
+  - Each ROM signals its result deterministically. `smoketest` writes `0xC1A55E11` at
+    `0x02200000`, echoes KEYINPUT at `+4`, keeps a loop counter at `+8`, and draws known
+    colours. Read these with `EmulatorCore.debugRead32`; direct boot leaves the ARM9 data
+    cache off.
+  - Don't name a test resource folder `Resources`: codesign rejects such iOS test bundles. Third-party CPU test ROMs (for example the armwrestler
   family) may be added only after confirming their licence. Record the licence in
   `THIRD_PARTY_LICENSES`.
 - Test patterns:
