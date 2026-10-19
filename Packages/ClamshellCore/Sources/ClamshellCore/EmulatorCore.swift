@@ -58,9 +58,14 @@ public protocol EmulatorCoreDelegate: AnyObject {
     /// Fill `buffer` with signed 16-bit mono samples at ~47.6 kHz; return the count written.
     /// Must not block.
     func emulatorCore(_ core: EmulatorCore, readMicrophoneInto buffer: UnsafeMutableBufferPointer<Int16>) -> Int
+    /// The Rumble Pak motor turned on for `milliseconds`.
+    func emulatorCore(_ core: EmulatorCore, didStartRumbleFor milliseconds: Int)
+    func emulatorCoreDidStopRumble(_ core: EmulatorCore)
 }
 
 public extension EmulatorCoreDelegate {
+    func emulatorCore(_ core: EmulatorCore, didStartRumbleFor milliseconds: Int) {}
+    func emulatorCoreDidStopRumble(_ core: EmulatorCore) {}
     func emulatorCore(_ core: EmulatorCore, didWriteSave saveMemory: UnsafeRawBufferPointer,
                       range: Range<Int>) {}
     func emulatorCoreDidRequestStop(_ core: EmulatorCore) {}
@@ -115,6 +120,16 @@ public final class EmulatorCore {
             let written = core.delegate?.emulatorCore(core, readMicrophoneInto: buffer) ?? 0
             return Int32(clamping: min(max(written, 0), Int(maxSamples)))
         }
+        callbacks.rumbleStart = { context, milliseconds in
+            guard let context else { return }
+            let core = Unmanaged<EmulatorCore>.fromOpaque(context).takeUnretainedValue()
+            core.delegate?.emulatorCore(core, didStartRumbleFor: Int(milliseconds))
+        }
+        callbacks.rumbleStop = { context in
+            guard let context else { return }
+            let core = Unmanaged<EmulatorCore>.fromOpaque(context).takeUnretainedValue()
+            core.delegate?.emulatorCoreDidStopRumble(core)
+        }
         handle = clamshell_core_create(callbacks, audioSampleRate)
         // The core holds an unretained back-pointer; it never outlives `self` (see deinit).
         clamshell_core_set_context(handle, Unmanaged.passUnretained(self).toOpaque())
@@ -123,6 +138,18 @@ public final class EmulatorCore {
     deinit {
         clamshell_core_destroy(handle)
     }
+
+    /// Whether a Rumble Pak sits in the Slot-2 port. Takes effect at the next `loadROM`.
+    public var hasRumblePak = false {
+        didSet { clamshell_core_set_rumble_pak(handle, hasRumblePak) }
+    }
+
+    /// A recorded "blow into the microphone" sound (mono, `microphoneSampleRate`).
+    public static let blowSamples: [Int16] = {
+        var count: UInt32 = 0
+        guard let samples = clamshell_mic_blow_samples(&count) else { return [] }
+        return Array(UnsafeBufferPointer(start: samples, count: Int(count)))
+    }()
 
     /// Size of the per-game SD card image homebrew sees (sparse on disk, so mostly free).
     public static let defaultSDCardSize: UInt64 = 256 * 1_024 * 1_024

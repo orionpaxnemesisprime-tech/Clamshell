@@ -5,7 +5,8 @@
 @   Scripts/make-test-rom.py <dir> savetest.nds --game-code ZCLS --arm9-offset 0x8000
 @
 @ At boot: read EEPROM byte 0 (0xFF = blank -> 0), store it at 0x02200010, then write
-@ (value + 1) back and signal 0xC1A55E11 at 0x02200000.
+@ (value + 1) back, pulse a Rumble Pak (if one is inserted) twice, and signal 0xC1A55E11 at
+@ 0x02200000.
 @ References: GBATEK "DS Cartridge Backup" and "DS Cartridge I/O Ports" (AUXSPICNT,
 @ AUXSPIDATA), "DS Memory Control" (EXMEMCNT).
 
@@ -17,10 +18,11 @@
 _start:
     ldr     r9, =0x02200000
 
-    @ EXMEMCNT bit 11 = 0: the NDS slot belongs to the ARM9.
+    @ EXMEMCNT: bit 11 = 0 gives the NDS slot to the ARM9, bit 7 = 0 the GBA (Slot-2) port.
     ldr     r0, =0x04000204
     ldrh    r1, [r0]
     bic     r1, r1, #0x800
+    bic     r1, r1, #0x80
     strh    r1, [r0]
 
     ldr     r8, =0x040001A0         @ AUXSPICNT; AUXSPIDATA at +2
@@ -69,6 +71,13 @@ _start:
     and     r0, r0, #0xFF
     mov     lr, pc
     b       xfer
+
+    @ Rumble Pak: every change of the value written to the Slot-2 area flips the motor.
+    mov     r0, #0x08000000
+    mov     r1, #2
+    strh    r1, [r0]
+    mov     r1, #0
+    strh    r1, [r0]
 
     ldr     r1, =0xC1A55E11
     str     r1, [r9]

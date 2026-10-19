@@ -336,11 +336,24 @@ int Mic_ReadInput(s16 *data, int maxlength, void *userdata)
     return 0;
 }
 
-// MARK: Slot-2 add-ons (not supported yet)
+// MARK: Slot-2 add-ons (Rumble Pak only)
 
 bool Addon_KeyDown(KeyType, void *) { return false; }
-void Addon_RumbleStart(u32, void *) {}
-void Addon_RumbleStop(void *) {}
+
+void Addon_RumbleStart(u32 len, void *userdata)
+{
+    void *context;
+    if (auto *cb = callbacksFor(userdata, &context); cb && cb->rumbleStart)
+        cb->rumbleStart(context, len);
+}
+
+void Addon_RumbleStop(void *userdata)
+{
+    void *context;
+    if (auto *cb = callbacksFor(userdata, &context); cb && cb->rumbleStop)
+        cb->rumbleStop(context);
+}
+
 float Addon_MotionQuery(MotionQueryType, void *) { return 0.0f; }
 
 // MARK: Dynamic libraries

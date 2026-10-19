@@ -21,8 +21,14 @@ struct ExternalROMTests {
             try? FileManager.default.removeItem(at: sdCard)
             try? FileManager.default.removeItem(at: sdCard.appendingPathExtension("idx"))
         }
+        let name = URL(filePath: path).lastPathComponent
+        for attempt in ["fresh SD image", "existing SD image"] {
+            let start = ContinuousClock.now
+            try EmulatorCore().loadROM(rom, name: name, sdCard: sdCard)
+            print("External ROM: load with \(attempt) took \(ContinuousClock.now - start)")
+        }
         let core = EmulatorCore()
-        try core.loadROM(rom, name: URL(filePath: path).lastPathComponent, sdCard: sdCard)
+        try core.loadROM(rom, name: name, sdCard: sdCard)
         core.start()
 
         // Ten emulated seconds: long enough for most homebrew to reach its title screen.

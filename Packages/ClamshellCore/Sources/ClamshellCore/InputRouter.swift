@@ -8,6 +8,8 @@ public enum InputSource: Sendable, Hashable, CaseIterable {
     case touchControls
     case gamepad
     case keyboard
+    /// Momentary presses from assistive-technology actions (Switch Control, VoiceOver).
+    case accessibility
 }
 
 /// Merges button state from every input source into one key mask for the session.

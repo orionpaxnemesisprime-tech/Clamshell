@@ -172,6 +172,9 @@ Notes:
 - Only request mic permission on the first `Mic_Start` (needs `NSMicrophoneUsageDescription`).
   If permission is denied, feed silence and provide a "blow" button (the Qt frontend has
   `mic_blow.h`; not built yet).
+- Blow: `MicrophoneInput.isBlowing` replays melonDS's recorded blow (`mic_blow.h`, exposed as
+  `EmulatorCore.blowSamples`) instead of live input. The BLOW on-screen control appears only
+  while a game has the mic open (`MicrophoneInput.onActiveChanged`).
 - As built: `MicrophoneInput` (an `AVAudioEngine` tap, then `AVAudioConverter`, then a
   `MonoSampleRing`) is passed to `EmulationSession(microphone:)`. The session's core delegate
   opens and closes it on the game's `Mic_Start`/`Mic_Stop`. It switches the audio session to
@@ -213,6 +216,15 @@ Notes:
     app to the cover layout, and sleeping the game on every close would be wrong.
   - Use hysteresis: lid closed below about 10°, open above about 30°.
   - Always offer a manual lid toggle, because some games use lid close as a mechanic.
+
+## Rumble
+
+- melonDS models rumble as the Slot-2 Rumble Pak add-on. `EmulationSession.start(rumblePak:)`
+  inserts it (Settings › Rumble Pak, on by default).
+- Each motor toggle arrives as `Addon_RumbleStart(16 ms)`/`Stop`. These are forwarded to a
+  `RumbleSink`; `RumbleOutput` plays short Core Haptics continuous events. The Simulator
+  can't vibrate.
+- `savetest` pulses the motor twice, which is how the tests verify it.
 
 ## Saves, save states, BIOS and firmware
 

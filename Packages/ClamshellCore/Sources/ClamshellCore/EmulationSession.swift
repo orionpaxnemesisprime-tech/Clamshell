@@ -52,9 +52,14 @@ public final class EmulationSession: Sendable {
     /// Where microphone samples come from when a game opens the mic (nil: silence).
     public let microphone: (any MicrophoneSource)?
 
-    public init(audioSampleRate: Double = 48_000, microphone: (any MicrophoneSource)? = nil) {
+    /// Where Rumble Pak pulses go (nil: ignored).
+    public let rumble: (any RumbleSink)?
+
+    public init(audioSampleRate: Double = 48_000, microphone: (any MicrophoneSource)? = nil,
+                rumble: (any RumbleSink)? = nil) {
         self.audioSampleRate = audioSampleRate
         self.microphone = microphone
+        self.rumble = rumble
         audio = AudioRingBuffer()
     }
 
@@ -69,8 +74,9 @@ public final class EmulationSession: Sendable {
     public typealias SaveHandler = @Sendable (_ saveMemory: [UInt8]) -> Void
 
     /// Validates the ROM on the calling thread, then starts the emulation thread.
+    /// - Parameter rumblePak: insert a Rumble Pak in Slot 2 (games that support it will rumble).
     public func start(rom: [UInt8], save: [UInt8]? = nil, name: String, sdCard: URL? = nil,
-                      saveDebounce: Duration = .seconds(1),
+                      rumblePak: Bool = false, saveDebounce: Duration = .seconds(1),
                       onSave: SaveHandler? = nil) throws(EmulatorError) {
         stop()
         // Validate synchronously so callers get a load error immediately (no SD card needed).
@@ -83,7 +89,8 @@ public final class EmulationSession: Sendable {
         let finished = DispatchSemaphore(value: 0)
         runFinished.withLock { $0 = finished }
         let thread = Thread { [self] in
-            run(rom: rom, save: save, name: name, sdCard: sdCard, saveDebounce: saveDebounce, onSave: onSave)
+            run(rom: rom, save: save, name: name, sdCard: sdCard, rumblePak: rumblePak,
+                saveDebounce: saveDebounce, onSave: onSave)
             finished.signal()
         }
         thread.name = "Clamshell emulation"
@@ -147,7 +154,7 @@ public final class EmulationSession: Sendable {
 
     // MARK: Emulation thread
 
-    private func run(rom: [UInt8], save: [UInt8]?, name: String, sdCard: URL?,
+    private func run(rom: [UInt8], save: [UInt8]?, name: String, sdCard: URL?, rumblePak: Bool,
                      saveDebounce: Duration, onSave: SaveHandler?) {
         defer {
             // Fail anything still queued so no caller waits forever.
@@ -160,9 +167,13 @@ public final class EmulationSession: Sendable {
         }
 
         let core = EmulatorCore(audioSampleRate: audioSampleRate)
-        let saves = CoreEvents(microphone: microphone)
+        let saves = CoreEvents(microphone: microphone, rumble: rumble)
         core.delegate = saves
-        defer { if saves.microphoneOpen { microphone?.stop() } }
+        core.hasRumblePak = rumblePak
+        defer {
+            if saves.microphoneOpen { microphone?.stop() }
+            rumble?.stop()
+        }
         do { try core.loadROM(rom, save: save, name: name, sdCard: sdCard) } catch { return }
         core.start()
 
@@ -266,9 +277,19 @@ private final class CoreEvents: EmulatorCoreDelegate {
     var lastWrite: ContinuousClock.Instant?
     private(set) var microphoneOpen = false
     private let microphone: (any MicrophoneSource)?
+    private let rumble: (any RumbleSink)?
 
-    init(microphone: (any MicrophoneSource)?) {
+    init(microphone: (any MicrophoneSource)?, rumble: (any RumbleSink)?) {
         self.microphone = microphone
+        self.rumble = rumble
+    }
+
+    func emulatorCore(_ core: EmulatorCore, didStartRumbleFor milliseconds: Int) {
+        rumble?.start(milliseconds: milliseconds)
+    }
+
+    func emulatorCoreDidStopRumble(_ core: EmulatorCore) {
+        rumble?.stop()
     }
 
     func emulatorCore(_ core: EmulatorCore, didWriteSave saveMemory: UnsafeRawBufferPointer, range: Range<Int>) {

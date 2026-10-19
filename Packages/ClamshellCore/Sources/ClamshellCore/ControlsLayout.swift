@@ -6,6 +6,8 @@ import CoreGraphics
 public struct ControlsLayout: Sendable, Equatable {
     public enum Control: Sendable, Hashable, CaseIterable {
         case dpad, faceButtons, l, r, select, start
+        /// Plays a recorded blow into the microphone (shown only while a game listens).
+        case blow
     }
 
     public enum Placement: Sendable, Equatable {
@@ -28,7 +30,7 @@ public struct ControlsLayout: Sendable, Equatable {
     public var placement: Placement
     public var frames: [Control: CGRect]
 
-    public init(container: CGRect, screens: ScreenLayout) {
+    public init(container: CGRect, screens: ScreenLayout, showsBlow: Bool = false) {
         let screensFrame = screens.top.union(screens.bottom)
         let left = CGRect(x: container.minX, y: container.minY,
                           width: max(0, screensFrame.minX - container.minX), height: container.height)
@@ -59,6 +61,23 @@ public struct ControlsLayout: Sendable, Equatable {
                                   centerY: inset.maxY - Self.faceSize / 2 - Self.smallButtonSize.height - Self.margin,
                                   container: container)
         }
+        if showsBlow, let blow = Self.blowFrame(frames: frames, container: container) {
+            frames[.blow] = blow
+        }
+    }
+
+    /// Next to Select if there is room, otherwise just below it.
+    private static func blowFrame(frames: [Control: CGRect], container: CGRect) -> CGRect? {
+        guard let select = frames[.select] else { return nil }
+        let size = smallButtonSize
+        let candidates = [
+            CGRect(x: select.maxX + margin, y: select.minY, width: size.width, height: size.height),
+            CGRect(x: select.minX, y: select.maxY + margin, width: size.width, height: size.height),
+            CGRect(x: select.minX - margin - size.width, y: select.minY, width: size.width, height: size.height),
+        ]
+        return candidates.first { candidate in
+            container.contains(candidate) && !frames.values.contains { $0.intersects(candidate) }
+        }
     }
 
     /// D-pad + Select on the left, face buttons + Start on the right, shoulders at the top
@@ -82,10 +101,16 @@ public struct ControlsLayout: Sendable, Equatable {
         ]
     }
 
+    /// The control under `point`, if any.
+    public func control(at point: CGPoint) -> Control? {
+        frames.first { $0.value.contains(point) }?.key
+    }
+
     /// Keys pressed by a touch at `point` (empty if it misses every control).
     public func keys(at point: CGPoint) -> EmulatorKeys {
         for (control, frame) in frames where frame.contains(point) {
             switch control {
+            case .blow: return []
             case .dpad: return Self.dpadKeys(at: point, in: frame)
             case .faceButtons: return Self.faceKey(at: point, in: frame)
             case .l: return .l

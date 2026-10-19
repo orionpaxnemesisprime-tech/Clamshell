@@ -2,6 +2,7 @@
 
 @testable import ClamshellCore
 import Foundation
+import CoreGraphics
 import ImageIO
 import Synchronization
 import Testing
@@ -171,5 +172,62 @@ struct MicrophoneTests {
 
         session.stop()
         #expect(mic.events.withLock { $0 } == ["start", "stop"], "closing the game closes the mic")
+    }
+}
+
+final class FakeRumble: RumbleSink {
+    let pulses = Mutex<[Int]>([])
+    let stops = Mutex(0)
+    func start(milliseconds: Int) { pulses.withLock { $0.append(milliseconds) } }
+    func stop() { stops.withLock { $0 += 1 } }
+}
+
+@Suite(.serialized, .timeLimit(.minutes(1)))
+struct RumbleAndBlowTests {
+    @Test func rumblePakPulsesReachTheSink() async throws {
+        let rumble = FakeRumble()
+        let session = EmulationSession(rumble: rumble)
+        try session.start(rom: romBytes("savetest"), name: "savetest.nds", rumblePak: true)
+        try await Task.sleep(for: .milliseconds(300))
+        session.stop()
+        #expect(rumble.pulses.withLock { $0 } == [16, 16], "savetest flips the motor twice")
+        #expect(rumble.stops.withLock { $0 } >= 2)
+    }
+
+    @Test func noRumblePakMeansNoPulses() async throws {
+        let rumble = FakeRumble()
+        let session = EmulationSession(rumble: rumble)
+        try session.start(rom: romBytes("savetest"), name: "savetest.nds")
+        try await Task.sleep(for: .milliseconds(300))
+        session.stop()
+        #expect(rumble.pulses.withLock { $0 }.isEmpty)
+    }
+
+    @Test func blowingReplacesTheMicrophoneWithTheRecordedBlow() {
+        let blow = EmulatorCore.blowSamples
+        #expect(blow.count > 1_000)
+        let mic = MicrophoneInput()
+        var buffer = [Int16](repeating: 0, count: 256)
+        #expect(buffer.withUnsafeMutableBufferPointer { mic.read(into: $0) } == 0, "silent when not blowing")
+
+        mic.isBlowing = true
+        #expect(buffer.withUnsafeMutableBufferPointer { mic.read(into: $0) } == 256)
+        #expect(buffer == Array(blow.prefix(256)))
+        _ = buffer.withUnsafeMutableBufferPointer { mic.read(into: $0) }
+        #expect(buffer == Array(blow[256..<512]), "playback continues where it left off")
+    }
+
+    @Test func blowButtonFitsWithoutOverlapping() throws {
+        let container = CGRect(x: 0, y: 0, width: 402, height: 758)
+        let layout = GameLayout(container: container, posture: .stacked, displayScale: 3,
+                                showsControls: true, showsBlow: true)
+        let controls = try #require(layout.controls)
+        let blow = try #require(controls.frames[.blow])
+        #expect(container.contains(blow))
+        for (control, frame) in controls.frames where control != .blow {
+            #expect(!frame.intersects(blow), "blow overlaps \(control)")
+        }
+        #expect(controls.keys(at: CGPoint(x: blow.midX, y: blow.midY)).isEmpty, "blowing is not a button")
+        #expect(controls.control(at: CGPoint(x: blow.midX, y: blow.midY)) == .blow)
     }
 }

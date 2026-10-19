@@ -12,7 +12,8 @@ public struct GameLayout: Sendable, Equatable {
     /// that would otherwise cover them.
     static let minimumScreenScaleForControls: CGFloat = 0.6
 
-    public init(container: CGRect, posture: ScreenPosture, displayScale: CGFloat, showsControls: Bool) {
+    public init(container: CGRect, posture: ScreenPosture, displayScale: CGFloat, showsControls: Bool,
+                showsBlow: Bool = false) {
         let screens = ScreenLayout(container: container, posture: posture, displayScale: displayScale)
         guard showsControls else {
             self.screens = screens
@@ -20,7 +21,7 @@ public struct GameLayout: Sendable, Equatable {
             return
         }
 
-        let controls = ControlsLayout(container: container, screens: screens)
+        let controls = ControlsLayout(container: container, screens: screens, showsBlow: showsBlow)
         self.screens = screens
         self.controls = controls
 
@@ -31,7 +32,7 @@ public struct GameLayout: Sendable, Equatable {
         guard reserved.height > 0 else { return }
         let smaller = ScreenLayout(container: reserved, posture: posture, displayScale: displayScale)
         guard smaller.top.width >= screens.top.width * Self.minimumScreenScaleForControls else { return }
-        let roomier = ControlsLayout(container: container, screens: smaller)
+        let roomier = ControlsLayout(container: container, screens: smaller, showsBlow: showsBlow)
         guard roomier.placement != .overlay else { return }
         self.screens = smaller
         self.controls = roomier

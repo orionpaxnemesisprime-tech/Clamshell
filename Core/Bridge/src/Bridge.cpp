@@ -9,6 +9,8 @@
 
 #include "Args.h"
 #include "FATStorage.h"
+#include "GBACart.h"
+#include "frontend/mic_blow.h"
 #include "GPU_Soft.h"
 #include "NDS.h"
 #include "NDSCart.h"
@@ -30,6 +32,7 @@ using namespace melonDS;
 struct ClamshellCore {
     ClamshellCoreCallbacks callbacks {};
     std::unique_ptr<NDS> nds;
+    bool rumblePak = false;
 };
 
 void *clamshell_internal_callbacks_context(void *userdata, ClamshellCoreCallbacks **callbacks)
@@ -99,11 +102,15 @@ ClamshellLoadResult clamshell_core_load_rom(ClamshellCore *core,
         nds.Stop(Platform::StopReason::External);
 
     nds.SetNDSCart(std::move(cart));
+    if (core->rumblePak)
+        nds.SetGBACart(GBACart::LoadAddon(GBAAddon_RumblePak, core));
     nds.Reset();
     // FreeBIOS cannot boot the firmware menu, so always direct-boot.
     nds.SetupDirectBoot(romName ? romName : "game.nds");
     return ClamshellLoadResultOK;
 }
+
+void clamshell_core_set_rumble_pak(ClamshellCore *core, bool inserted) { core->rumblePak = inserted; }
 
 void clamshell_core_start(ClamshellCore *core) { core->nds->Start(); }
 
@@ -216,6 +223,12 @@ const uint8_t *clamshell_core_save_memory(const ClamshellCore *core, uint32_t *l
 uint32_t clamshell_core_debug_read32(ClamshellCore *core, uint32_t address)
 {
     return core->nds->ARM9Read32(address);
+}
+
+const int16_t *clamshell_mic_blow_samples(uint32_t *count)
+{
+    *count = sizeof(mic_blow) / sizeof(mic_blow[0]);
+    return mic_blow;
 }
 
 const char *clamshell_core_melonds_version(void) { return MELONDS_VERSION; }

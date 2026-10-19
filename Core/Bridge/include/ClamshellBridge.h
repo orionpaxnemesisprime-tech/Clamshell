@@ -67,6 +67,9 @@ typedef struct ClamshellCoreCallbacks {
     /// Fill up to `maxSamples` signed 16-bit mono samples at ~47.6 kHz. Return the number
     /// written. Must not block.
     int32_t (*micRead)(void *context, int16_t *samples, int32_t maxSamples);
+    /// Rumble Pak motor pulse of `milliseconds`, and its end.
+    void (*rumbleStart)(void *context, uint32_t milliseconds);
+    void (*rumbleStop)(void *context);
 } ClamshellCoreCallbacks;
 
 /// Process-wide log sink (melonDS logging has no per-instance context). Thread-safe.
@@ -92,6 +95,9 @@ ClamshellLoadResult clamshell_core_load_rom(ClamshellCore *core,
                                             const uint8_t *save, uint32_t saveLength,
                                             const char *romName,
                                             const char *sdCardPath, uint64_t sdCardSize);
+/// Inserts (or not) a Rumble Pak in the Slot-2 port at the next clamshell_core_load_rom.
+void clamshell_core_set_rumble_pak(ClamshellCore *core, bool inserted);
+
 void clamshell_core_start(ClamshellCore *core);
 void clamshell_core_stop(ClamshellCore *core);
 void clamshell_core_reset(ClamshellCore *core);
@@ -127,6 +133,10 @@ const uint8_t *clamshell_core_save_memory(const ClamshellCore *core, uint32_t *l
 
 /// Test/debug hook: reads a 32-bit word from the ARM9 bus.
 uint32_t clamshell_core_debug_read32(ClamshellCore *core, uint32_t address);
+
+/// A recorded "blow into the microphone" sound (s16 mono, ~47.6 kHz) for games that expect
+/// blowing when no microphone is available. From melonDS (GPLv3).
+const int16_t *clamshell_mic_blow_samples(uint32_t *count);
 
 /// The melonDS revision this bridge was built against.
 const char *clamshell_core_melonds_version(void);

@@ -9,7 +9,8 @@ import Synchronization
 /// requested) and stops when the game closes it. Audio is processed in memory only.
 /// If permission is denied the game simply hears silence.
 public final class MicrophoneInput: MicrophoneSource, @unchecked Sendable {
-    // @unchecked: `engine` and `converter` are touched only on `queue`; the ring is lock-free.
+    // @unchecked: `engine` and `converter` are touched only on `queue`; the ring is lock-free;
+    // everything else is atomic or behind a Mutex.
 
     private let ring = MonoSampleRing(capacity: 16_384)
     private let queue = DispatchQueue(label: "com.foldingduo.Clamshell.microphone")
@@ -17,16 +18,41 @@ public final class MicrophoneInput: MicrophoneSource, @unchecked Sendable {
     private var converter: AVAudioConverter?
     private let wanted = Atomic<Bool>(false)
 
+    private struct Handlers {
+        var permissionDenied: (@Sendable () -> Void)?
+        var activeChanged: (@Sendable (Bool) -> Void)?
+    }
+    private let handlers = Mutex(Handlers())
+
     /// Called on the main actor when the user denies microphone access.
-    public var onPermissionDenied: (@Sendable () -> Void)?
+    public var onPermissionDenied: (@Sendable () -> Void)? {
+        get { handlers.withLock { $0.permissionDenied } }
+        set { handlers.withLock { $0.permissionDenied = newValue } }
+    }
+    /// Called on the main actor when a game opens (true) or closes (false) its microphone.
+    public var onActiveChanged: (@Sendable (Bool) -> Void)? {
+        get { handlers.withLock { $0.activeChanged } }
+        set { handlers.withLock { $0.activeChanged = newValue } }
+    }
+
+    /// While true, the game hears a recorded blow instead of the microphone (for games that
+    /// ask you to blow, and for players without microphone access).
+    public var isBlowing: Bool {
+        get { blowing.load(ordering: .relaxed) }
+        set { blowing.store(newValue, ordering: .relaxed) }
+    }
+    private let blowing = Atomic<Bool>(false)
+    private let blowSamples = EmulatorCore.blowSamples
+    private let blowPosition = Atomic<Int>(0) // only advanced on the emulation thread
 
     public init() {}
 
     public func start() {
+        if let changed = onActiveChanged { DispatchQueue.main.async { changed(true) } }
         wanted.store(true, ordering: .relaxed)
         AVAudioApplication.requestRecordPermission { [self] granted in
             guard granted else {
-                if let onPermissionDenied { DispatchQueue.main.async(execute: onPermissionDenied) }
+                if let denied = onPermissionDenied { DispatchQueue.main.async(execute: denied) }
                 return
             }
             queue.async { [self] in
@@ -37,12 +63,23 @@ public final class MicrophoneInput: MicrophoneSource, @unchecked Sendable {
     }
 
     public func stop() {
+        if let changed = onActiveChanged { DispatchQueue.main.async { changed(false) } }
         wanted.store(false, ordering: .relaxed)
         queue.async { [self] in stopCapture() }
     }
 
     public func read(into buffer: UnsafeMutableBufferPointer<Int16>) -> Int {
-        ring.read(into: buffer)
+        guard blowing.load(ordering: .relaxed), !blowSamples.isEmpty else {
+            return ring.read(into: buffer)
+        }
+        ring.flush() // drop live audio while blowing
+        var position = blowPosition.load(ordering: .relaxed)
+        for i in buffer.indices {
+            buffer[i] = blowSamples[position]
+            position = (position + 1) % blowSamples.count
+        }
+        blowPosition.store(position, ordering: .relaxed)
+        return buffer.count
     }
 
     // MARK: Capture (on `queue`)
