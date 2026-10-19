@@ -18,12 +18,29 @@ struct GameFile: Identifiable, Hashable {
 final class EmulatorModel {
     private static let logger = Logger(subsystem: "com.foldingduo.Clamshell", category: "Emulator")
 
-    let session = EmulationSession()
+    let session: EmulationSession
     let router: InputRouter
     let controllers: GameControllerInput
     private(set) var library: [GameFile] = []
     private(set) var currentGame: GameFile?
     var errorMessage: String?
+
+    /// Lid closed by the player's button.
+    var isLidClosedManually = false { didSet { applyLid() } }
+    /// When on, folding the device shut (below ~10°) closes the emulated lid.
+    var foldClosesLid = UserDefaults.standard.bool(forKey: "foldClosesLid") {
+        didSet {
+            UserDefaults.standard.set(foldClosesLid, forKey: "foldClosesLid")
+            applyLid()
+        }
+    }
+    private(set) var isLidClosed = false
+    @ObservationIgnored private var hingeLid = HingeLidTracker()
+    @ObservationIgnored private var hasExplainedMicrophoneDenial = false
+
+    /// SHA-1 of the running game, used for saves and save states.
+    @ObservationIgnored private var romID: String?
+    static let saveStateSlotCount = 4
 
     @ObservationIgnored private var audioOutput: AudioOutput?
 
@@ -33,10 +50,23 @@ final class EmulatorModel {
     private static let saveStore = SaveStore(directory: URL.documentsDirectory.appending(path: "Saves"))
     /// Serial so saves for one game are written in order; off the emulation thread.
     private static let saveQueue = DispatchQueue(label: "com.foldingduo.Clamshell.saves", qos: .utility)
+    /// Save states live in Documents/States/<rom id>/slot-N.state (+ .png thumbnail).
+    private static let stateStore = StateStore(directory: URL.documentsDirectory.appending(path: "States"))
+    /// Per-game SD card images for homebrew (DLDI). Large but sparse, so kept out of Documents.
+    private static let sdCardDirectory = URL.applicationSupportDirectory.appending(path: "SDCards", directoryHint: .isDirectory)
 
     init() {
+        let microphone = MicrophoneInput()
+        session = EmulationSession(microphone: microphone)
         router = InputRouter(session: session)
         controllers = GameControllerInput(router: router)
+        microphone.onPermissionDenied = { [weak self] in
+            Task { @MainActor in
+                guard let self, !self.hasExplainedMicrophoneDenial else { return }
+                self.hasExplainedMicrophoneDenial = true
+                self.errorMessage = String(localized: "Microphone access is off, so the game hears silence. You can turn it on in Settings.")
+            }
+        }
     }
 
     func refreshLibrary() {
@@ -72,8 +102,10 @@ final class EmulatorModel {
             let saveID = SaveStore.identifier(for: rom)
             let store = Self.saveStore
             let queue = Self.saveQueue
+            try? FileManager.default.createDirectory(at: Self.sdCardDirectory, withIntermediateDirectories: true)
             try session.start(rom: rom, save: store.load(identifier: saveID),
-                              name: game.url.lastPathComponent) { memory in
+                              name: game.url.lastPathComponent,
+                              sdCard: Self.sdCardDirectory.appending(path: "\(saveID).img")) { memory in
                 queue.async {
                     do {
                         try store.write(memory, identifier: saveID)
@@ -83,6 +115,9 @@ final class EmulatorModel {
                 }
             }
             currentGame = game
+            romID = saveID
+            hingeLid.reset()
+            isLidClosedManually = false
             startAudio()
         } catch {
             Self.logger.error("Couldn't start game: \(String(describing: error), privacy: .public)")
@@ -95,6 +130,57 @@ final class EmulatorModel {
         session.stop() // flushes any pending save to the save queue
         audioOutput?.stop()
         currentGame = nil
+        romID = nil
+    }
+
+    // MARK: Lid
+
+    /// Feed the device hinge angle (iOS 27.1+, foldable devices).
+    func hingeAngleChanged(degrees: Double) {
+        hingeLid.update(angleDegrees: degrees)
+        applyLid()
+    }
+
+    private func applyLid() {
+        let closed = isLidClosedManually || (foldClosesLid && hingeLid.isClosed)
+        guard closed != isLidClosed else { return }
+        isLidClosed = closed
+        session.setLidClosed(closed)
+    }
+
+    // MARK: Save states
+
+    func saveStateSlots() -> [StateStore.Slot] {
+        guard let romID else { return [] }
+        return Self.stateStore.slots(romID: romID, count: Self.saveStateSlotCount)
+    }
+
+    func saveState(slot: Int) async {
+        guard let romID else { return }
+        do {
+            let state = try await session.saveState()
+            let thumbnail = session.frames.latestFrame()?.pngData()
+            try Self.stateStore.write(state, thumbnail: thumbnail, romID: romID, slot: slot)
+        } catch {
+            Self.logger.error("Save state failed: \(String(describing: error), privacy: .public)")
+            errorMessage = String(localized: "The state couldn’t be saved.")
+        }
+    }
+
+    func loadState(slot: Int) async {
+        guard let romID else { return }
+        do {
+            let state = try Self.stateStore.read(romID: romID, slot: slot)
+            try await session.loadState(state)
+        } catch {
+            Self.logger.error("Load state failed: \(String(describing: error), privacy: .public)")
+            errorMessage = String(localized: "This state couldn’t be loaded. It may be from an older version of Clamshell.")
+        }
+    }
+
+    func deleteState(slot: Int) {
+        guard let romID else { return }
+        Self.stateStore.delete(romID: romID, slot: slot)
     }
 
     /// Pauses emulation and audio while the scene is inactive.

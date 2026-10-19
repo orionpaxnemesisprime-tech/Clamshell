@@ -25,6 +25,12 @@ Runtime pieces in `Packages/ClamshellCore`:
 - `AudioRingBuffer`: SPSC ring.
 - `AudioOutput`.
 - `ScreenLayout`: posture geometry and touch mapping.
+- `GameLayout`/`ControlsLayout`: on-screen controls.
+- `InputRouter`/`InputMapping`: touch, gamepad and keyboard input.
+- `SaveStore`: battery saves.
+- `StateStore`: save-state slots.
+- `MicrophoneInput`.
+- `HingeLidTracker`: fold-to-lid hysteresis.
 
 App pieces in `Clamshell/`:
 - `Rendering/`: Metal `DualScreenRenderer` and the touch-handling `GameMTKView`.
@@ -153,6 +159,9 @@ All geometry comes from `GeometryReader`/`onGeometryChange`. Never hardcode devi
     only after a gamepad is actually used.
 - **Shared simulator.** The user may be interacting with the Duo simulator. Run unattended
   test suites on another simulator.
+- **Crashes.** Check `~/Library/Logs/DiagnosticReports/Clamshell-*.ips`, or the
+  SpringBoard/FrontBoard "Process exited" log. A launch that drops to the home screen is a
+  crash, even when no alert appears.
 
 ### Project file (Xcode 27 `project.xcproj` format)
 
