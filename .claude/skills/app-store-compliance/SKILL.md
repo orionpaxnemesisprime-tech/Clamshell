@@ -38,7 +38,9 @@ forbidden until the user decides.
   - linked to its individual project or release page, never to a list or site that also
     carries ports or ROMs of others' games;
   - verified to boot in Clamshell;
-  - described in our own neutral words, with no third-party trademarks.
+  - described in our own neutral words, with no third-party trademarks. Titles drop any
+    platform suffix or prefix ("Snake", not "Snake DS"); the builder refuses "DS",
+    "Nintendo" or ".nds" in any user-facing field.
 
   The catalog is compiled into the app so App Review sees exactly what is linked.
 - **Catalog workflow:**

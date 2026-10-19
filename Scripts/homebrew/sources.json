@@ -1,7 +1,7 @@
 [
   {
     "id": "space-impakto-ds",
-    "title": "Space Impakto DS",
+    "title": "Space Impakto",
     "author": "Relminator, Anyatech",
     "genre": "Shooter",
     "summary": "A fast vertical shoot-’em-up with dense bullet patterns and a high-score table.",
@@ -12,7 +12,7 @@
   },
   {
     "id": "traffic-escape-ds",
-    "title": "Traffic Escape DS",
+    "title": "Traffic Escape",
     "author": "Warioware64",
     "genre": "Puzzle",
     "summary": "A 3D sliding-block puzzle: move the cars to clear a path for yours, across 20 levels.",
@@ -102,7 +102,7 @@
   },
   {
     "id": "nds-tactics",
-    "title": "NDS Tactics",
+    "title": "Tactics",
     "author": "Davgav",
     "genre": "Strategy",
     "summary": "Small fantasy turn-based tactics on a grid, for one or two players.",
@@ -132,7 +132,7 @@
   },
   {
     "id": "snake-ds",
-    "title": "Snake DS",
+    "title": "Snake",
     "author": "Abel Beltrán",
     "genre": "Arcade",
     "summary": "The classic grow-the-snake game: eat apples without biting your tail.",
@@ -152,7 +152,7 @@
   },
   {
     "id": "de-lite-ds",
-    "title": "De-Lite-DS",
+    "title": "De-Lite",
     "author": "Jamie Fuller",
     "genre": "Puzzle",
     "summary": "Tap lights to toggle them and their neighbours until every light is off.",
@@ -173,7 +173,7 @@
   },
   {
     "id": "airdomeds",
-    "title": "AirdomeDS",
+    "title": "Airdome",
     "author": "omerkot",
     "genre": "Shooter",
     "summary": "Defend the ground with a fixed cannon by shooting down falling objects.",
@@ -233,7 +233,7 @@
   },
   {
     "id": "elevator-ds",
-    "title": "Elevator DS",
+    "title": "Elevator",
     "author": "jpcerrone",
     "genre": "Arcade",
     "summary": "A small elevator-themed game with touch controls and saved progress.",
@@ -265,7 +265,7 @@
   },
   {
     "id": "impostords",
-    "title": "ImpostorDS",
+    "title": "Impostor",
     "author": "Emiscae",
     "genre": "Other",
     "summary": "A pass-the-console party word game: one player secretly gets a different word (Portuguese).",
@@ -295,7 +295,7 @@
   },
   {
     "id": "mancala-ds",
-    "title": "Mancala DS",
+    "title": "Mancala",
     "author": "Sneupi",
     "genre": "Card & Board",
     "summary": "The classic seed-sowing board game.",
@@ -305,7 +305,7 @@
   },
   {
     "id": "ludonds",
-    "title": "LudoNDS",
+    "title": "Ludo",
     "author": "SuperSaiyajinStackZ",
     "genre": "Card & Board",
     "summary": "The traditional race-to-home board game for up to four players.",
@@ -315,7 +315,7 @@
   },
   {
     "id": "tic-tac-ds",
-    "title": "Tic Tac DS",
+    "title": "Tic Tac",
     "author": "Jonatan6",
     "genre": "Card & Board",
     "summary": "Noughts and crosses on the touch screen.",
@@ -336,7 +336,7 @@
   },
   {
     "id": "snake-nds",
-    "title": "Snake NDS",
+    "title": "Snake",
     "author": "tomas7770",
     "genre": "Arcade",
     "summary": "A snake game with extra features and a surprise at 200 points.",
@@ -357,7 +357,7 @@
   },
   {
     "id": "balloon-pop-ds",
-    "title": "Balloon Pop DS",
+    "title": "Balloon Pop",
     "author": "Warioware64",
     "genre": "Arcade",
     "summary": "A short touch-screen balloon-popping game.",
@@ -367,7 +367,7 @@
   },
   {
     "id": "monty-hall-ds",
-    "title": "Monty Hall DS",
+    "title": "Monty Hall",
     "author": "Rph-nsmb",
     "genre": "Puzzle",
     "summary": "Pick one of three doors, then decide whether to switch: the classic probability puzzle.",
@@ -437,7 +437,7 @@
   },
   {
     "id": "magnetron",
-    "title": "MagneTron NDS Remix",
+    "title": "MagneTron Remix",
     "author": "Steven De Toni",
     "genre": "Shooter",
     "summary": "A fast twin-direction arena shooter across 30 levels: blast enemies and rescue friendly pickups.",
@@ -447,7 +447,7 @@
   },
   {
     "id": "reversi-ds",
-    "title": "Reversi DS",
+    "title": "Reversi",
     "author": "Darren Earl",
     "genre": "Card & Board",
     "summary": "The classic disc-flipping board game against the computer.",
@@ -477,7 +477,7 @@
   },
   {
     "id": "spider-solitaire-ds",
-    "title": "Spider Solitaire DS",
+    "title": "Spider Solitaire",
     "author": "Jess Telford",
     "genre": "Card & Board",
     "summary": "Two-deck patience with three difficulty levels and undo.",
@@ -497,7 +497,7 @@
   },
   {
     "id": "krystals-ds",
-    "title": "Krystals DS",
+    "title": "Krystals",
     "author": "NightFox & Co.",
     "genre": "Puzzle",
     "summary": "Line up three or more gems of a colour and chain combos across 25 levels.",

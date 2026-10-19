@@ -21,6 +21,7 @@
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -84,8 +85,21 @@ def download_note(url):
         return ("The download is a 7z, RAR or TAR archive, which the Files app can’t open. "
                 "You’ll need an app that extracts it, then open the game file.")
     if "/raw/" in path:
-        return "Download the “.nds” file from the repository’s file list."
+        return "Download the game file from the repository’s file list."
     return None
+
+
+# Platform names (and file extensions) that must never appear in the app's UI; see the
+# app-store-compliance skill. Catalog titles use neutral names instead (e.g. "Snake", not
+# "Snake DS"); each entry's page still links to the author's own release.
+# "DS" is only a platform name in capitals ("words" is fine), so it's matched case-sensitively.
+FORBIDDEN = (re.compile(r"DS"), re.compile(r"nintendo|\.nds", re.IGNORECASE))
+
+
+def forbidden_fields(entry):
+    """User-facing fields that mention a forbidden platform name."""
+    fields = ("title", "author", "genre", "summary", "note")
+    return [f for f in fields if any(p.search(entry.get(f) or "") for p in FORBIDDEN)]
 
 
 def is_archive(path):
@@ -109,6 +123,9 @@ def main():
     os.makedirs(args.work, exist_ok=True)
 
     sources = json.load(open(SOURCES))
+    bad = {e["id"]: forbidden_fields(e) for e in sources if forbidden_fields(e)}
+    if bad:
+        sys.exit(f"Platform names in user-facing text (use neutral wording): {bad}")
     files = {}
     for entry in sources:
         try:
@@ -150,6 +167,7 @@ def main():
         item = {k: entry[k] for k in ("id", "title", "author", "genre", "summary", "licence", "page")}
         note = entry.get("note") or download_note(entry.get("download", ""))
         if note:
+            assert not forbidden_fields({"note": note}), note
             item["note"] = note
         item["icon"] = icon
         catalog.append(item)

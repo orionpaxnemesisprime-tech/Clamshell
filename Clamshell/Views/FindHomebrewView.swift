@@ -97,7 +97,7 @@ struct FindHomebrewView: View {
 
             if query.isEmpty, genre == nil {
                 Section("How to Play One") {
-                    Label("Open the game’s page and download the latest “.nds” file.", systemImage: "1.circle")
+                    Label("Open the game’s page and download the latest version of the game file.", systemImage: "1.circle")
                     Label("Tap the downloaded file and choose Open in Clamshell, or use Import Games in the Library.", systemImage: "2.circle")
                 }
             }
