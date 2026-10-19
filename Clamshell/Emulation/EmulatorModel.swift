@@ -52,6 +52,20 @@ final class EmulatorModel {
     /// SHA-1 of the running game, used for saves and save states.
     @ObservationIgnored private var romID: String?
     static let saveStateSlotCount = 4
+    /// Hidden slot holding "where you left off" (written on background and on close).
+    private static let resumeSlot = 99
+
+    /// The game to offer under "Continue", if its resume state and file still exist.
+    private(set) var resumeGame: GameFile?
+    private(set) var resumeDate: Date?
+    /// True while a game is being closed (its resume state is being written).
+    private(set) var isClosing = false
+
+    private struct ResumeInfo: Codable {
+        var fileName: String
+        var romID: String
+    }
+    private static let resumeKey = "resume"
 
     @ObservationIgnored private var audioOutput: AudioOutput?
 
@@ -106,11 +120,28 @@ final class EmulatorModel {
             .filter { $0.pathExtension.lowercased() == "nds" }
             .map { GameFile(url: $0, banner: GameBanner.read(from: $0)) }
             .sorted { $0.displayTitle.localizedStandardCompare($1.displayTitle) == .orderedAscending }
+        refreshResume()
+    }
+
+    private func refreshResume() {
+        guard let data = UserDefaults.standard.data(forKey: Self.resumeKey),
+              let info = try? JSONDecoder().decode(ResumeInfo.self, from: data),
+              let game = library.first(where: { $0.url.lastPathComponent == info.fileName }),
+              case let slot = Self.stateStore.slot(romID: info.romID, index: Self.resumeSlot),
+              !slot.isEmpty
+        else {
+            resumeGame = nil
+            resumeDate = nil
+            return
+        }
+        resumeGame = game
+        resumeDate = slot.date
     }
 
     /// Removes the game file. Its battery save and save states stay, so re-importing the same
     /// game picks them up again.
     func deleteGame(_ game: GameFile) {
+        if resumeGame == game { UserDefaults.standard.removeObject(forKey: Self.resumeKey) }
         do {
             try FileManager.default.removeItem(at: game.url)
         } catch {
@@ -118,6 +149,16 @@ final class EmulatorModel {
             errorMessage = String(localized: "The game couldn’t be deleted.")
         }
         refreshLibrary()
+    }
+
+    /// A game opened from Files or the share sheet: import it, then play it.
+    func openExternalGame(_ url: URL) async {
+        guard url.pathExtension.lowercased() == "nds" else { return }
+        if currentGame != nil { await closeGame() }
+        importGame(from: url)
+        if let game = library.first(where: { $0.url.lastPathComponent == url.lastPathComponent }) {
+            play(game)
+        }
     }
 
     /// Copies a user-selected file into the library. Clamshell never downloads games.
@@ -168,12 +209,45 @@ final class EmulatorModel {
         }
     }
 
-    func closeGame() {
+    /// Writes "where you left off", then stops the game (which also flushes its battery save).
+    func closeGame() async {
+        guard currentGame != nil, !isClosing else { return }
+        isClosing = true
+        defer { isClosing = false }
         router.releaseAll()
-        session.stop() // flushes any pending save to the save queue
         audioOutput?.stop()
+        await saveResumeState()
+        session.stop()
         currentGame = nil
         romID = nil
+        refreshResume()
+    }
+
+    /// Continues the "Continue" game from its resume state.
+    func resume() async {
+        guard let game = resumeGame else { return }
+        play(game)
+        guard let romID, currentGame == game else { return }
+        do {
+            let state = try Self.stateStore.read(romID: romID, slot: Self.resumeSlot)
+            try await session.loadState(state)
+        } catch {
+            Self.logger.error("Resume failed: \(String(describing: error), privacy: .public)")
+            errorMessage = String(localized: "Couldn’t pick up where you left off, so the game started from the beginning.")
+        }
+    }
+
+    private func saveResumeState() async {
+        guard let romID, let game = currentGame else { return }
+        do {
+            let state = try await session.saveState()
+            let thumbnail = session.frames.latestFrame()?.pngData()
+            try Self.stateStore.write(state, thumbnail: thumbnail, romID: romID, slot: Self.resumeSlot)
+            let info = ResumeInfo(fileName: game.url.lastPathComponent, romID: romID)
+            UserDefaults.standard.set(try JSONEncoder().encode(info), forKey: Self.resumeKey)
+        } catch {
+            Self.logger.error("Resume save failed: \(String(describing: error), privacy: .public)")
+        }
     }
 
     // MARK: Lid
@@ -236,6 +310,12 @@ final class EmulatorModel {
             router.releaseAll()
             audioOutput?.stop()
             protectPendingSave()
+            // Remember where the player is, in case the system ends the app in the background.
+            let task = UIApplication.shared.beginBackgroundTask(withName: "Resume state", expirationHandler: nil)
+            Task {
+                await saveResumeState()
+                UIApplication.shared.endBackgroundTask(task)
+            }
         }
     }
 

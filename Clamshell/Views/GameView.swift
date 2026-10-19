@@ -38,7 +38,10 @@ struct GameView: View {
         })
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Close", systemImage: "xmark") { model.closeGame() }
+                Button("Close", systemImage: "xmark") {
+                    Task { await model.closeGame() }
+                }
+                .disabled(model.isClosing)
             }
             ToolbarItem(placement: .primaryAction) {
                 Menu("Game", systemImage: "ellipsis") {

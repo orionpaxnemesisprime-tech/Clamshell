@@ -30,6 +30,9 @@ struct ContentView: View {
             }
         }
         #endif
+        .onOpenURL { url in
+            Task { await model.openExternalGame(url) }
+        }
         .onChange(of: scenePhase) { _, phase in
             model.setSceneActive(phase == .active)
         }

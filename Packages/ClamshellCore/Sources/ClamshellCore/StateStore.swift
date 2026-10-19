@@ -39,13 +39,15 @@ public struct StateStore: Sendable {
     func thumbnailURL(romID: String, slot: Int) -> URL { gameDirectory(romID).appending(path: "slot-\(slot).png") }
 
     public func slots(romID: String, count: Int) -> [Slot] {
-        (0..<count).map { index in
-            let url = stateURL(romID: romID, slot: index)
-            let date = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
-            let thumbnail = thumbnailURL(romID: romID, slot: index)
-            let hasThumbnail = FileManager.default.fileExists(atPath: thumbnail.path(percentEncoded: false))
-            return Slot(index: index, date: date, thumbnailURL: date != nil && hasThumbnail ? thumbnail : nil)
-        }
+        (0..<count).map { slot(romID: romID, index: $0) }
+    }
+
+    public func slot(romID: String, index: Int) -> Slot {
+        let url = stateURL(romID: romID, slot: index)
+        let date = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+        let thumbnail = thumbnailURL(romID: romID, slot: index)
+        let hasThumbnail = FileManager.default.fileExists(atPath: thumbnail.path(percentEncoded: false))
+        return Slot(index: index, date: date, thumbnailURL: date != nil && hasThumbnail ? thumbnail : nil)
     }
 
     public func write(_ state: [UInt8], thumbnail: Data?, romID: String, slot: Int) throws {
