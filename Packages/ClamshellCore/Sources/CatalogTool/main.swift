@@ -14,6 +14,7 @@
 // "ok" means: loaded, still running after 600 frames, and drawing more than a blank fill.
 // A human still reviews the screenshots (error screens can be colourful too).
 
+import ClamshellBridge
 import ClamshellCore
 import CoreGraphics
 import Foundation
@@ -103,18 +104,27 @@ func verify(_ path: String, outputDirectory: URL, defaultIcons: [[UInt8]]) -> Re
     }
 
     let sdCard = FileManager.default.temporaryDirectory.appending(path: "catalog-sd-\(UUID()).img")
+    // CLAMSHELL_KEEP_SD=1 keeps the SD image for inspection.
     defer {
-        try? FileManager.default.removeItem(at: sdCard)
-        try? FileManager.default.removeItem(at: sdCard.appendingPathExtension("idx"))
+        if ProcessInfo.processInfo.environment["CLAMSHELL_KEEP_SD"] == nil {
+            try? FileManager.default.removeItem(at: sdCard)
+            try? FileManager.default.removeItem(at: sdCard.appendingPathExtension("idx"))
+        }
     }
     let core = EmulatorCore()
     do {
-        try core.loadROM(Array(data), name: url.lastPathComponent, sdCard: sdCard)
+        // CLAMSHELL_NO_SD=1 boots without an SD card image (diagnostics only).
+        let noSD = ProcessInfo.processInfo.environment["CLAMSHELL_NO_SD"] != nil
+        try core.loadROM(Array(data), name: url.lastPathComponent, sdCard: noSD ? nil : sdCard)
     } catch {
         result.reason = "rejected by the core"
         return result
     }
     core.start()
+    if ProcessInfo.processInfo.environment["CLAMSHELL_LOG"] != nil {
+        let argv = (0..<3).map { String(core.debugRead32(0x02FF_FE70 + UInt32($0) * 4), radix: 16) }
+        FileHandle.standardError.write(Data("argv block: \(argv), SD image: \(sdCard.path)\n".utf8))
+    }
 
     let frames = 600
     let start = ContinuousClock.now
@@ -140,6 +150,14 @@ func verify(_ path: String, outputDirectory: URL, defaultIcons: [[UInt8]]) -> Re
 }
 
 var arguments = Array(CommandLine.arguments.dropFirst())
+// CLAMSHELL_LOG=1 prints melonDS's own log (warnings and errors) to stderr, for diagnosing
+// games that don't boot.
+if ProcessInfo.processInfo.environment["CLAMSHELL_LOG"] != nil {
+    clamshell_set_log_handler({ _, level, message in
+        guard let message, level.rawValue >= ClamshellLogLevelInfo.rawValue else { return }
+        FileHandle.standardError.write(Data(String(cString: message).utf8))
+    }, nil)
+}
 if arguments.first == "--sheet", arguments.count >= 3 {
     let ok = contactSheet(arguments.dropFirst(2).map { URL(filePath: $0) }, to: URL(filePath: arguments[1]))
     exit(ok ? 0 : 1)

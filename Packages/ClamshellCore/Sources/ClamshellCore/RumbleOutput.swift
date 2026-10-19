@@ -65,7 +65,8 @@ public final class RumbleOutput: RumbleSink, @unchecked Sendable {
             engine?.playsHapticsOnly = true
             engine?.isAutoShutdownEnabled = true
             engine?.resetHandler = { [weak self] in
-                self?.queue.async { try? self?.engine?.start() }
+                guard let self else { return }
+                queue.async { try? self.engine?.start() }
             }
         }
         try? engine?.start()

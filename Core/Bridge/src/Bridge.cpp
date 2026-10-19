@@ -21,7 +21,9 @@
 #include <algorithm>
 #include <cstdlib>
 #include <cstring>
+#include <cstddef>
 #include <memory>
+#include <new>
 
 #if defined(JIT_ENABLED)
 #error "Clamshell must be built with ENABLE_JIT=OFF (App Store forbids JIT)."
@@ -29,9 +31,25 @@
 
 using namespace melonDS;
 
+// melonDS's NDS object embeds all of the console's memory (~32 MB). The system allocator can
+// hand a freed block that large back without zeroing it, and some emulator state relies on
+// starting at zero: after certain games, the *next* game in the same process booted to a
+// black screen. Allocating the machine in zeroed memory makes every boot identical to a fresh
+// launch. (Found while verifying the homebrew catalog; reproducible with a DSi-enhanced
+// homebrew followed by any other game.)
+struct NDSDeleter {
+    void operator()(NDS *nds) const noexcept
+    {
+        nds->~NDS();
+        std::free(nds);
+    }
+};
+
+static_assert(alignof(NDS) <= alignof(std::max_align_t), "calloc can't align NDS");
+
 struct ClamshellCore {
     ClamshellCoreCallbacks callbacks {};
-    std::unique_ptr<NDS> nds;
+    std::unique_ptr<NDS, NDSDeleter> nds;
     bool rumblePak = false;
 };
 
@@ -56,7 +74,10 @@ ClamshellCore *clamshell_core_create(ClamshellCoreCallbacks callbacks, double au
     args.OutputSampleRate = audioSampleRate > 0 ? audioSampleRate : 48000.0;
     args.Interpolation = AudioInterpolation::None;
 
-    core->nds = std::make_unique<NDS>(std::move(args), core.get());
+    void *memory = std::calloc(1, sizeof(NDS));
+    if (!memory)
+        return nullptr;
+    core->nds.reset(new (memory) NDS(std::move(args), core.get()));
     core->nds->SetRenderer(std::make_unique<SoftRenderer>(*core->nds));
     return core.release();
 }
