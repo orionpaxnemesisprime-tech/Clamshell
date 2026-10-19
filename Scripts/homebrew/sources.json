@@ -1,0 +1,568 @@
+[
+  {
+    "id": "space-impakto-ds",
+    "title": "Space Impakto DS",
+    "author": "Relminator, Anyatech",
+    "genre": "Shooter",
+    "summary": "A fast vertical shoot-’em-up with dense bullet patterns and a high-score table.",
+    "licence": "MIT",
+    "page": "https://codeberg.org/SkyLyrac/SpaceImpakto-DS/releases",
+    "download": "https://codeberg.org/SkyLyrac/SpaceImpakto-DS/releases/download/v20250829/SpaceImpakto-DS-v20250829.zip",
+    "note": "The download is a ZIP file. Tap it in the Files app to unzip it, then open the game file."
+  },
+  {
+    "id": "traffic-escape-ds",
+    "title": "Traffic Escape DS",
+    "author": "Warioware64",
+    "genre": "Puzzle",
+    "summary": "A 3D sliding-block puzzle: move the cars to clear a path for yours, across 20 levels.",
+    "licence": "Apache-2.0",
+    "page": "https://github.com/Warioware64/Traffic-Escape-DS/releases",
+    "download": "https://github.com/Warioware64/Traffic-Escape-DS/releases/download/v1.2/Traffic_Escape_DS.nds"
+  },
+  {
+    "id": "wolveslayer",
+    "title": "WolveSlayer",
+    "author": "Firehazard Studio",
+    "genre": "Action",
+    "summary": "A 3D hack-and-slash adventure with hand-made textures and music.",
+    "licence": "MIT (code)",
+    "page": "https://codeberg.org/SkyLyrac/wolveslayer/releases",
+    "download": "https://codeberg.org/SkyLyrac/wolveslayer/releases/download/v20240731/wolveslayer.nds"
+  },
+  {
+    "id": "tales-of-dagur",
+    "title": "Tales of Dagur",
+    "author": "LiraNuna",
+    "genre": "RPG",
+    "summary": "A complete role-playing adventure made for the handheld.",
+    "licence": "WTFPL",
+    "page": "https://codeberg.org/SkyLyrac/talesofdagur/releases",
+    "download": "https://codeberg.org/SkyLyrac/talesofdagur/releases/download/v20250325/talesofdagur.nds"
+  },
+  {
+    "id": "magical-tomio",
+    "title": "Magical Tomio’s Slime-o-duplex",
+    "author": "Whatter",
+    "genre": "Action",
+    "summary": "Cast spells to survive waves of slimes and bosses for a high score.",
+    "licence": "none stated",
+    "page": "https://whatter.itch.io/magical-tomios-slime-o-duplex",
+    "download": ""
+  },
+  {
+    "id": "pippa-dishes",
+    "title": "The Game in which Pippa Washes her Dishes",
+    "author": "NiiCola",
+    "genre": "Other",
+    "summary": "A short, cosy touch-screen game about scrubbing a pile of dishes.",
+    "licence": "none stated",
+    "page": "https://niicola.itch.io/the-game-in-which-pippa",
+    "download": ""
+  },
+  {
+    "id": "red-hot-chilling-bunnies",
+    "title": "Red Hot Chilling Bunnies",
+    "author": "Juice Tea",
+    "genre": "Action",
+    "summary": "Spray water with the stylus and blow into the mic to keep your robot cool while rescuing rabbits from a forest fire.",
+    "licence": "none stated",
+    "page": "https://juice-tea.itch.io/red-hot-chilling-bunnies",
+    "download": ""
+  },
+  {
+    "id": "prismo",
+    "title": "Prismo",
+    "author": "Jeruko",
+    "genre": "Puzzle",
+    "summary": "Help an imprisoned alien escape by bouncing laser beams around each room.",
+    "licence": "none stated",
+    "page": "https://jeruko10.itch.io/prismo",
+    "download": ""
+  },
+  {
+    "id": "brickfast",
+    "title": "BrickFast",
+    "author": "Jorjai",
+    "genre": "Arcade",
+    "summary": "Classic paddle-and-ball brick breaking.",
+    "licence": "none stated",
+    "page": "https://jorjai.itch.io/brickfast",
+    "download": ""
+  },
+  {
+    "id": "hamster-blaster-3000",
+    "title": "Hamster Blaster 3000",
+    "author": "Poolo",
+    "genre": "Shooter",
+    "summary": "Fight off a futuristic hamster invasion with your blaster.",
+    "licence": "none stated",
+    "page": "https://poolo.itch.io/hamster-blaster-3000",
+    "download": ""
+  },
+  {
+    "id": "nds-tactics",
+    "title": "NDS Tactics",
+    "author": "Davgav",
+    "genre": "Strategy",
+    "summary": "Small fantasy turn-based tactics on a grid, for one or two players.",
+    "licence": "none stated",
+    "page": "https://davgav.itch.io/nds-tactics",
+    "download": ""
+  },
+  {
+    "id": "sector-seven",
+    "title": "Sector Seven",
+    "author": "1737_Man",
+    "genre": "Shooter",
+    "summary": "Pilot a scout ship investigating an anomalous planet guarded by hostile machines.",
+    "licence": "none stated",
+    "page": "https://1737-man.itch.io/sector-seven",
+    "download": ""
+  },
+  {
+    "id": "una-aventura-inesperada",
+    "title": "Una Aventura Inesperada",
+    "author": "Juan José Gómez",
+    "genre": "Puzzle",
+    "summary": "Reach each dungeon exit in a limited number of moves, then answer quiz questions (partly in Spanish).",
+    "licence": "none stated",
+    "page": "https://g-juanjo.itch.io/una-aventura-inesperada",
+    "download": ""
+  },
+  {
+    "id": "snake-ds",
+    "title": "Snake DS",
+    "author": "Abel Beltrán",
+    "genre": "Arcade",
+    "summary": "The classic grow-the-snake game: eat apples without biting your tail.",
+    "licence": "none stated",
+    "page": "https://abel-beltran.itch.io/snake-ds",
+    "download": ""
+  },
+  {
+    "id": "glutkern",
+    "title": "GLUTKERN – Around the World",
+    "author": "0x1a4",
+    "genre": "Action",
+    "summary": "A neon roguelite with five worlds, multi-phase bosses and eight weapons (beta).",
+    "licence": "none stated",
+    "page": "https://0x1a4.itch.io/glutkern-around-the-world",
+    "download": ""
+  },
+  {
+    "id": "de-lite-ds",
+    "title": "De-Lite-DS",
+    "author": "Jamie Fuller",
+    "genre": "Puzzle",
+    "summary": "Tap lights to toggle them and their neighbours until every light is off.",
+    "licence": "none stated",
+    "page": "https://jamiefuller.itch.io/de-lite-ds",
+    "note": "The download is a ZIP file. Tap it in the Files app to unzip it, then open the game file.",
+    "download": ""
+  },
+  {
+    "id": "trail-mix",
+    "title": "Trail Mix",
+    "author": "Fabulu",
+    "genre": "Action",
+    "summary": "A top-down roguelike arena: buy and merge companions who fight for you across 30 waves.",
+    "licence": "none stated",
+    "page": "https://github.com/Fabulu/trailmix/releases",
+    "download": "https://github.com/Fabulu/trailmix/releases/download/v3.1.1/trailmix.nds"
+  },
+  {
+    "id": "airdomeds",
+    "title": "AirdomeDS",
+    "author": "omerkot",
+    "genre": "Shooter",
+    "summary": "Defend the ground with a fixed cannon by shooting down falling objects.",
+    "licence": "MIT",
+    "page": "https://github.com/omerkot/AirdomeDS/releases",
+    "download": "https://github.com/omerkot/AirdomeDS/releases/download/v1.0.0/AirdomeDS.nds"
+  },
+  {
+    "id": "save-the-princess",
+    "title": "Save the Princess",
+    "author": "KamiKitsune420",
+    "genre": "Platformer",
+    "summary": "An audio-only side-scroller you play entirely by ear, with three levels and checkpoints.",
+    "licence": "MIT",
+    "page": "https://github.com/KamiKitsune420/save_the_princess/releases",
+    "download": "https://github.com/KamiKitsune420/save_the_princess/releases/download/v1.0/save_the_princess.nds"
+  },
+  {
+    "id": "ulterior-warzone",
+    "title": "Ulterior Warzone (Demo)",
+    "author": "Violation Entertainment",
+    "genre": "Strategy",
+    "summary": "A futuristic real-time strategy demo with 24 skirmish scenarios.",
+    "licence": "none stated",
+    "page": "https://github.com/LDAsh72/uw/releases",
+    "download": "https://github.com/LDAsh72/uw/releases/download/nds/uw_demo1.nds"
+  },
+  {
+    "id": "spacer",
+    "title": "Spacer",
+    "author": "azinum",
+    "genre": "Shooter",
+    "summary": "A small space shooter.",
+    "licence": "none stated",
+    "page": "https://github.com/azinum/spacer/releases",
+    "download": "https://github.com/azinum/spacer/releases/download/0.1.0/spacer-0.1.0.nds"
+  },
+  {
+    "id": "flying-saturn",
+    "title": "Flying Saturn",
+    "author": "jtrebicki",
+    "genre": "Arcade",
+    "summary": "A small arcade game drawn with simple shapes.",
+    "licence": "MIT",
+    "page": "https://github.com/jtrebicki/FlyingSaturn/releases",
+    "download": "https://github.com/jtrebicki/FlyingSaturn/releases/download/v1.0.0/flyingsaturn.nds"
+  },
+  {
+    "id": "jamclown",
+    "title": "JamClown",
+    "author": "lorenzolanglois",
+    "genre": "Puzzle",
+    "summary": "A one-minute challenge: find the penguin hiding among the cannons of a circus turned factory.",
+    "licence": "MIT",
+    "page": "https://github.com/lorenzolanglois/JamClown/releases",
+    "download": "https://github.com/lorenzolanglois/JamClown/releases/download/v1.0/jamclown.nds"
+  },
+  {
+    "id": "elevator-ds",
+    "title": "Elevator DS",
+    "author": "jpcerrone",
+    "genre": "Arcade",
+    "summary": "A small elevator-themed game with touch controls and saved progress.",
+    "licence": "none stated",
+    "page": "https://github.com/jpcerrone/elevator-nds/releases",
+    "download": "https://github.com/jpcerrone/elevator-nds/releases/download/v1.0/elevator-nds.nds",
+    "manualCheck": "Title screen and floor buttons confirmed in screenshot review, 2026-10-19"
+  },
+  {
+    "id": "worldpath",
+    "title": "Worldpath",
+    "author": "awmc000",
+    "genre": "Puzzle",
+    "summary": "Link a start country to a destination through bordering countries.",
+    "licence": "GPL-3.0",
+    "page": "https://github.com/awmc000/worldpath/releases",
+    "download": "https://github.com/awmc000/worldpath/releases/download/deb-build-2/worldpath-devbuild2.zip"
+  },
+  {
+    "id": "wordup",
+    "title": "WordUp!",
+    "author": "superpanic",
+    "genre": "Puzzle",
+    "summary": "A word puzzle game from 2007.",
+    "licence": "none stated",
+    "page": "https://github.com/superpanic/WordUp/releases",
+    "download": "https://github.com/superpanic/WordUp/releases/download/1.0/wordup.nds",
+    "manualCheck": "High-score prompt and menu confirmed in screenshot review, 2026-10-19"
+  },
+  {
+    "id": "impostords",
+    "title": "ImpostorDS",
+    "author": "Emiscae",
+    "genre": "Other",
+    "summary": "A pass-the-console party word game: one player secretly gets a different word (Portuguese).",
+    "licence": "none stated",
+    "page": "https://github.com/Emiscae/ImpostorDS/releases",
+    "download": "https://github.com/Emiscae/ImpostorDS/releases/download/segredo/ImpostorDS1.2.nds"
+  },
+  {
+    "id": "bagh-chal",
+    "title": "Bagh Chal",
+    "author": "Garhoogin",
+    "genre": "Card & Board",
+    "summary": "The traditional Nepali tigers-and-goats strategy board game.",
+    "licence": "BSD-2-Clause",
+    "page": "https://github.com/Garhoogin/BaghChal/releases",
+    "download": "https://github.com/Garhoogin/BaghChal/releases/download/v1.0.0/BaghChal.nds"
+  },
+  {
+    "id": "gravity",
+    "title": "Gravity",
+    "author": "Garhoogin",
+    "genre": "Arcade",
+    "summary": "A small gravity-based arcade game.",
+    "licence": "BSD-2-Clause",
+    "page": "https://github.com/Garhoogin/Gravity/releases",
+    "download": "https://github.com/Garhoogin/Gravity/releases/download/v1.0.0.0/gravity.nds"
+  },
+  {
+    "id": "mancala-ds",
+    "title": "Mancala DS",
+    "author": "Sneupi",
+    "genre": "Card & Board",
+    "summary": "The classic seed-sowing board game.",
+    "licence": "none stated",
+    "page": "https://github.com/Sneupi/mancala-ds/releases",
+    "download": "https://github.com/Sneupi/mancala-ds/releases/download/1.0/mancala.nds"
+  },
+  {
+    "id": "ludonds",
+    "title": "LudoNDS",
+    "author": "SuperSaiyajinStackZ",
+    "genre": "Card & Board",
+    "summary": "The traditional race-to-home board game for up to four players.",
+    "licence": "GPL-3.0",
+    "page": "https://github.com/SuperSaiyajinStackZ/LudoNDS/releases",
+    "download": "https://github.com/SuperSaiyajinStackZ/LudoNDS/releases/download/v0.1.0/LudoNDS.nds"
+  },
+  {
+    "id": "tic-tac-ds",
+    "title": "Tic Tac DS",
+    "author": "Jonatan6",
+    "genre": "Card & Board",
+    "summary": "Noughts and crosses on the touch screen.",
+    "licence": "GPL-3.0",
+    "page": "https://github.com/Jonatan6/Tic-Tac-DS/releases",
+    "download": "https://github.com/Jonatan6/Tic-Tac-DS/releases/download/v3.1/tic-tac-ds.nds",
+    "manualCheck": "Mode menu (touch to continue) confirmed in screenshot review, 2026-10-19"
+  },
+  {
+    "id": "2048-nds",
+    "title": "2048",
+    "author": "mdmrk",
+    "genre": "Puzzle",
+    "summary": "Slide numbered tiles and merge matching ones to reach 2048.",
+    "licence": "MIT",
+    "page": "https://github.com/mdmrk/2048-nds/releases",
+    "download": "https://github.com/mdmrk/2048-nds/releases/download/v1.0.2/2048-nds.nds"
+  },
+  {
+    "id": "snake-nds",
+    "title": "Snake NDS",
+    "author": "tomas7770",
+    "genre": "Arcade",
+    "summary": "A snake game with extra features and a surprise at 200 points.",
+    "licence": "none stated",
+    "page": "https://github.com/tomas7770/snake-nds/releases",
+    "download": "https://github.com/tomas7770/snake-nds/releases/download/release1/snake-nds.nds",
+    "manualCheck": "Title screen confirmed in screenshot review, 2026-10-19"
+  },
+  {
+    "id": "infinite-runner",
+    "title": "Infinite Runner",
+    "author": "LauP31",
+    "genre": "Platformer",
+    "summary": "An endless runner with randomly generated obstacles and music.",
+    "licence": "none stated",
+    "page": "https://github.com/LauP31/nintendo-ds-game/releases",
+    "download": "https://github.com/LauP31/nintendo-ds-game/releases/download/first-build/InfiniteRunner.nds"
+  },
+  {
+    "id": "balloon-pop-ds",
+    "title": "Balloon Pop DS",
+    "author": "Warioware64",
+    "genre": "Arcade",
+    "summary": "A short touch-screen balloon-popping game.",
+    "licence": "Apache-2.0",
+    "page": "https://github.com/Warioware64/Balloon-Pop-DS/releases",
+    "download": "https://github.com/Warioware64/Balloon-Pop-DS/releases/download/1.0.0/balloon-touch-ds.nds"
+  },
+  {
+    "id": "monty-hall-ds",
+    "title": "Monty Hall DS",
+    "author": "Rph-nsmb",
+    "genre": "Puzzle",
+    "summary": "Pick one of three doors, then decide whether to switch: the classic probability puzzle.",
+    "licence": "MIT",
+    "page": "https://github.com/Rph-nsmb/MontyHallDS/releases",
+    "download": "https://github.com/Rph-nsmb/MontyHallDS/releases/download/v2.0/Monty.Hall.DS.v2.0.zip"
+  },
+  {
+    "id": "parkin-rampage",
+    "title": "Parkin’ Rampage",
+    "author": "Tim Seidel",
+    "genre": "Puzzle",
+    "summary": "Slide jammed cars around a crowded car park until the police car can drive out.",
+    "licence": "BSD-3-Clause",
+    "page": "https://github.com/DesperateProgrammer/ParkingRampage",
+    "download": "https://github.com/DesperateProgrammer/ParkingRampage/raw/main/ParkingRampage.nds"
+  },
+  {
+    "id": "mazeman",
+    "title": "MazeMan",
+    "author": "Luke Rodgers",
+    "genre": "Adventure",
+    "summary": "Escape five generated dungeons: open coloured doors, grab gold and fend off zombies with a sword.",
+    "licence": "none stated",
+    "page": "https://github.com/convenient/mazeman",
+    "download": "https://github.com/convenient/mazeman/raw/develop/src/src.nds"
+  },
+  {
+    "id": "downfall",
+    "title": "DownFall",
+    "author": "Derrick Gold",
+    "genre": "Arcade",
+    "summary": "Keep the ball dropping through gaps in rising platforms, with power-ups and power-downs.",
+    "licence": "none stated",
+    "page": "https://github.com/DerrickGold/DownFall",
+    "download": "https://github.com/DerrickGold/DownFall/raw/main/DownFall.nds"
+  },
+  {
+    "id": "bazado-ds",
+    "title": "Bazado",
+    "author": "zdextiny",
+    "genre": "Card & Board",
+    "summary": "A trick-prediction card game with a Spanish 48-card deck: win exactly the tricks you bid (Spanish).",
+    "licence": "none stated",
+    "page": "https://github.com/zdextiny/Bazado-DS/releases",
+    "download": "https://github.com/zdextiny/Bazado-DS/releases/download/v1.0.0/Bazado-DS.nds"
+  },
+  {
+    "id": "bilou-school-rush",
+    "title": "Bilou: School Rush",
+    "author": "Sylvain “PypeBros”",
+    "genre": "Platformer",
+    "summary": "A round little hero races through a school world of books and ink to save a library city.",
+    "licence": "not stated",
+    "page": "https://sourceforge.net/projects/dsgametools/files/demo%20games/",
+    "download": "https://sourceforge.net/projects/dsgametools/files/demo%20games/SchoolRush-jln.zip/download"
+  },
+  {
+    "id": "bilou-apple-assault",
+    "title": "Bilou: Apple Assault",
+    "author": "Sylvain “PypeBros”",
+    "genre": "Platformer",
+    "summary": "A short platformer: fend off waves of hostile apples.",
+    "licence": "not stated",
+    "page": "https://sourceforge.net/projects/dsgametools/files/demo%20games/",
+    "download": "https://sourceforge.net/projects/dsgametools/files/demo%20games/AppleAssault-bbt.nds/download"
+  },
+  {
+    "id": "magnetron",
+    "title": "MagneTron NDS Remix",
+    "author": "Steven De Toni",
+    "genre": "Shooter",
+    "summary": "A fast twin-direction arena shooter across 30 levels: blast enemies and rescue friendly pickups.",
+    "licence": "Public Domain",
+    "page": "https://sourceforge.net/projects/magnetron/",
+    "download": "https://sourceforge.net/projects/magnetron/files/Nintendo%20DS%20Remix/1.5/Magnetron_NDS_Remix_1.5.3.zip/download"
+  },
+  {
+    "id": "reversi-ds",
+    "title": "Reversi DS",
+    "author": "Darren Earl",
+    "genre": "Card & Board",
+    "summary": "The classic disc-flipping board game against the computer.",
+    "licence": "GPL-3.0",
+    "page": "https://sourceforge.net/projects/reversids/",
+    "download": "https://sourceforge.net/projects/reversids/files/v0.6/reversi_ds.6.nds/download"
+  },
+  {
+    "id": "kanji-strike",
+    "title": "Kanji Strike",
+    "author": "kkdorn",
+    "genre": "Shooter",
+    "summary": "Shoot down falling meteors by matching Japanese kanji to their readings.",
+    "licence": "GPL-2.0",
+    "page": "https://sourceforge.net/projects/kanjistrike/",
+    "download": "https://sourceforge.net/projects/kanjistrike/files/kanjistrike%20DS/v1.0/kanjistrike_ds_v1_0.zip/download"
+  },
+  {
+    "id": "powder",
+    "title": "POWDER",
+    "author": "Jeff Lait",
+    "genre": "RPG",
+    "summary": "A graphical roguelike dungeon crawl built for handhelds, with generated levels, many monsters and spells.",
+    "licence": "CC Sampling Plus 1.0 (source)",
+    "page": "http://www.zincland.com/powder/index.php?pagename=release",
+    "download": "http://www.zincland.com/powder/release/powder118_ds.zip"
+  },
+  {
+    "id": "spider-solitaire-ds",
+    "title": "Spider Solitaire DS",
+    "author": "Jess Telford",
+    "genre": "Card & Board",
+    "summary": "Two-deck patience with three difficulty levels and undo.",
+    "licence": "GPL-2.0",
+    "page": "https://sourceforge.net/projects/spidersolitaire/",
+    "download": "https://sourceforge.net/projects/spidersolitaire/files/Spider%20Solitaire%20DS/v3.1.1/spidersolitairedsbinary_3.1.1.rar/download"
+  },
+  {
+    "id": "awesomeguy",
+    "title": "AWESOMEGUY",
+    "author": "David Liebman",
+    "genre": "Platformer",
+    "summary": "Stomp crocodiles and collect coins across platform stages (beta).",
+    "licence": "GPL-3.0",
+    "page": "https://sourceforge.net/projects/awesomeguy/",
+    "download": "https://sourceforge.net/projects/awesomeguy/files/awesomeguy_0.4-beta4/awesomeguy.nds_0.4-beta4.tar.gz/download"
+  },
+  {
+    "id": "krystals-ds",
+    "title": "Krystals DS",
+    "author": "NightFox & Co.",
+    "genre": "Puzzle",
+    "summary": "Line up three or more gems of a colour and chain combos across 25 levels.",
+    "licence": "CC BY-NC 4.0",
+    "page": "https://github.com/knightfox75/krystals_ds/releases",
+    "download": "https://github.com/knightfox75/krystals_ds/releases/download/20140413/krystals_ds_20140413.7z"
+  },
+  {
+    "id": "mind-maze",
+    "title": "Mind Maze",
+    "author": "NightFox & Co.",
+    "genre": "Puzzle",
+    "summary": "Four stylus brain-teasers: sliding tiles, memory pairs, a ball maze and rotating picture cubes.",
+    "licence": "CC BY-NC 4.0",
+    "page": "https://github.com/knightfox75/mind_maze/releases",
+    "download": "https://github.com/knightfox75/mind_maze/releases/download/20120824/mind_maze_20120824.7z"
+  },
+  {
+    "id": "speed-trap",
+    "title": "Speed Trap",
+    "author": "NightFox & Co.",
+    "genre": "Racing",
+    "summary": "A top-down time-trial racer with ten cars, three circuits and checkpoint bonuses.",
+    "licence": "CC BY-NC 4.0",
+    "page": "https://github.com/knightfox75/speed_trap/releases",
+    "download": "https://github.com/knightfox75/speed_trap/releases/download/20110213/speed_trap_20110213.7z"
+  },
+  {
+    "id": "navy-wars",
+    "title": "Navy Wars",
+    "author": "NightFox & Co.",
+    "genre": "Strategy",
+    "summary": "Draw your fleet on a grid, then take turns firing at hidden squares to sink the enemy’s ships.",
+    "licence": "CC BY-NC 4.0",
+    "page": "https://github.com/knightfox75/navy_wars/releases",
+    "download": "https://github.com/knightfox75/navy_wars/releases/download/20110213/navy_wars_20110213.7z"
+  },
+  {
+    "id": "nightfox-colors",
+    "title": "NightFox’s Colors",
+    "author": "NightFox & Co.",
+    "genre": "Puzzle",
+    "summary": "Steer falling columns of gems to match three or more of a colour, across 25 levels.",
+    "licence": "CC BY-NC 4.0",
+    "page": "https://github.com/knightfox75/nightfox-s_colors/releases",
+    "download": "https://github.com/knightfox75/nightfox-s_colors/releases/download/20090804/nightfox.s_colors_20090804.7z"
+  },
+  {
+    "id": "catch-that-human",
+    "title": "Catch That Human",
+    "author": "NightFox & Co.",
+    "genre": "Arcade",
+    "summary": "A milk-loving cat sets off a contraption to stop a human pinching its milk cartons.",
+    "licence": "CC BY-NC 4.0",
+    "page": "https://github.com/knightfox75/catch_that_human_ggj14/releases",
+    "download": "https://github.com/knightfox75/catch_that_human_ggj14/releases/download/20140126/catch_that_human_ggj14_1.0.7z"
+  },
+  {
+    "id": "present-factory",
+    "title": "Present Factory",
+    "author": "Micha Faw",
+    "genre": "Puzzle",
+    "summary": "Drop toys into matching coloured boxes on a factory line and keep the combo going.",
+    "licence": "none stated",
+    "page": "https://ghostmaple.itch.io/present-factory",
+    "download": ""
+  }
+]

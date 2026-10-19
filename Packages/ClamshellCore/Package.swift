@@ -11,6 +11,8 @@ let package = Package(
     ],
     products: [
         .library(name: "ClamshellCore", targets: ["ClamshellCore"]),
+        // macOS tool that verifies homebrew for the Find Homebrew catalog.
+        .executable(name: "clamshell-catalog", targets: ["CatalogTool"]),
     ],
     targets: [
         // melonDS + C facade, produced by Scripts/build-core.sh (not checked in).
@@ -22,6 +24,10 @@ let package = Package(
             name: "ClamshellCore",
             dependencies: ["ClamshellBridge"],
             linkerSettings: [.linkedLibrary("c++")]
+        ),
+        .executableTarget(
+            name: "CatalogTool",
+            dependencies: ["ClamshellCore"]
         ),
         .testTarget(
             name: "ClamshellCoreTests",

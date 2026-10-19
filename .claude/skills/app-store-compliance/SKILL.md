@@ -41,6 +41,20 @@ forbidden until the user decides.
   - described in our own neutral words, with no third-party trademarks.
 
   The catalog is compiled into the app so App Review sees exactly what is linked.
+- **Catalog workflow:**
+  1. Add the game to `Scripts/homebrew/sources.json`.
+  2. Run `python3 -I Scripts/build-homebrew-catalog.py <scratch-dir> --default-icon <ref>...`.
+     It downloads to scratch only and boots each game in the `clamshell-catalog` verifier.
+  3. Review the screenshots with `clamshell-catalog --sheet`. They must be real title or
+     menu screens: no error screens, no photos of real people, nothing objectionable.
+  4. Use `manualCheck` only to override the "nearly blank" heuristic, after a human has
+     reviewed the screenshot.
+- **Icons:**
+  - A game's banner icon is bundled only if its licence clearly allows redistribution.
+  - **Never bundle SDK placeholder icons** (BlocksDS, devkitPro…): they depict console
+    hardware. Pass each as `--default-icon` (keep them outside the repo) so they're rejected.
+- **Downloads:** only the author's normal free download. Don't automate itch.io
+  name-your-price or purchase flows; leave those games out or have a person verify them.
 
 ## 2. Trademarks and trade dress
 
