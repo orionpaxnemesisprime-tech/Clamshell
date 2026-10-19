@@ -66,8 +66,9 @@ All geometry comes from `GeometryReader`/`onGeometryChange`. Never hardcode devi
 - The project uses Xcode 27's `Clamshell.xcodeproj/project.xcproj` format. Scheme:
   `Clamshell`.
 - Project settings: `SWIFT_VERSION = 6.0` and `IPHONEOS_DEPLOYMENT_TARGET = 27.0`. Guard
-  iOS 27.1 fold/hinge APIs with `#available`. `TARGETED_DEVICE_FAMILY = 1,2` still includes
-  iPad; whether to keep it is an open decision.
+  iOS 27.1 fold/hinge APIs with `#available`. `TARGETED_DEVICE_FAMILY = 1,2`: iPhone Duo is
+  the primary target, and iPad is supported too (decided 2026-10-19). Layouts must also work
+  in resizable iPad windows.
 
 ## Licensing (summary; full rules in the `app-store-compliance` skill)
 

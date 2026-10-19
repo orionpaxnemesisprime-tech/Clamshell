@@ -49,6 +49,21 @@ public protocol EmulatorCoreDelegate: AnyObject {
                       range: Range<Int>)
     /// The emulated console stopped itself.
     func emulatorCoreDidRequestStop(_ core: EmulatorCore)
+    /// The game opened the microphone. Request permission / start capture here.
+    func emulatorCoreDidStartMicrophone(_ core: EmulatorCore)
+    func emulatorCoreDidStopMicrophone(_ core: EmulatorCore)
+    /// Fill `buffer` with signed 16-bit mono samples at ~47.6 kHz; return the count written.
+    /// Must not block.
+    func emulatorCore(_ core: EmulatorCore, readMicrophoneInto buffer: UnsafeMutableBufferPointer<Int16>) -> Int
+}
+
+public extension EmulatorCoreDelegate {
+    func emulatorCore(_ core: EmulatorCore, didWriteSave saveMemory: UnsafeRawBufferPointer,
+                      range: Range<Int>) {}
+    func emulatorCoreDidRequestStop(_ core: EmulatorCore) {}
+    func emulatorCoreDidStartMicrophone(_ core: EmulatorCore) {}
+    func emulatorCoreDidStopMicrophone(_ core: EmulatorCore) {}
+    func emulatorCore(_ core: EmulatorCore, readMicrophoneInto buffer: UnsafeMutableBufferPointer<Int16>) -> Int { 0 }
 }
 
 /// One emulated machine (melonDS, interpreter only).
@@ -79,6 +94,23 @@ public final class EmulatorCore {
             guard let context else { return }
             let core = Unmanaged<EmulatorCore>.fromOpaque(context).takeUnretainedValue()
             core.delegate?.emulatorCoreDidRequestStop(core)
+        }
+        callbacks.micStart = { context in
+            guard let context else { return }
+            let core = Unmanaged<EmulatorCore>.fromOpaque(context).takeUnretainedValue()
+            core.delegate?.emulatorCoreDidStartMicrophone(core)
+        }
+        callbacks.micStop = { context in
+            guard let context else { return }
+            let core = Unmanaged<EmulatorCore>.fromOpaque(context).takeUnretainedValue()
+            core.delegate?.emulatorCoreDidStopMicrophone(core)
+        }
+        callbacks.micRead = { context, samples, maxSamples in
+            guard let context, let samples, maxSamples > 0 else { return 0 }
+            let core = Unmanaged<EmulatorCore>.fromOpaque(context).takeUnretainedValue()
+            let buffer = UnsafeMutableBufferPointer(start: samples, count: Int(maxSamples))
+            let written = core.delegate?.emulatorCore(core, readMicrophoneInto: buffer) ?? 0
+            return Int32(clamping: min(max(written, 0), Int(maxSamples)))
         }
         handle = clamshell_core_create(callbacks, audioSampleRate)
         // The core holds an unretained back-pointer; it never outlives `self` (see deinit).
