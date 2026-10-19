@@ -4,6 +4,7 @@ import ClamshellCore
 import Foundation
 import Observation
 import OSLog
+import UIKit
 
 /// A game file the user imported into the app's library.
 struct GameFile: Identifiable, Hashable {
@@ -18,6 +19,8 @@ final class EmulatorModel {
     private static let logger = Logger(subsystem: "com.foldingduo.Clamshell", category: "Emulator")
 
     let session = EmulationSession()
+    let router: InputRouter
+    let controllers: GameControllerInput
     private(set) var library: [GameFile] = []
     private(set) var currentGame: GameFile?
     var errorMessage: String?
@@ -26,6 +29,15 @@ final class EmulatorModel {
 
     /// Imported games live in Documents/Games (visible in the Files app).
     static let gamesDirectory = URL.documentsDirectory.appending(path: "Games", directoryHint: .isDirectory)
+    /// Battery saves live in Documents/Saves, so players can back them up through Files.
+    private static let saveStore = SaveStore(directory: URL.documentsDirectory.appending(path: "Saves"))
+    /// Serial so saves for one game are written in order; off the emulation thread.
+    private static let saveQueue = DispatchQueue(label: "com.foldingduo.Clamshell.saves", qos: .utility)
+
+    init() {
+        router = InputRouter(session: session)
+        controllers = GameControllerInput(router: router)
+    }
 
     func refreshLibrary() {
         let files = (try? FileManager.default.contentsOfDirectory(
@@ -57,7 +69,19 @@ final class EmulatorModel {
     func play(_ game: GameFile) {
         do {
             let rom = Array(try Data(contentsOf: game.url))
-            try session.start(rom: rom, name: game.url.lastPathComponent)
+            let saveID = SaveStore.identifier(for: rom)
+            let store = Self.saveStore
+            let queue = Self.saveQueue
+            try session.start(rom: rom, save: store.load(identifier: saveID),
+                              name: game.url.lastPathComponent) { memory in
+                queue.async {
+                    do {
+                        try store.write(memory, identifier: saveID)
+                    } catch {
+                        Self.logger.error("Save failed: \(error.localizedDescription, privacy: .public)")
+                    }
+                }
+            }
             currentGame = game
             startAudio()
         } catch {
@@ -67,7 +91,8 @@ final class EmulatorModel {
     }
 
     func closeGame() {
-        session.stop()
+        router.releaseAll()
+        session.stop() // flushes any pending save to the save queue
         audioOutput?.stop()
         currentGame = nil
     }
@@ -79,7 +104,20 @@ final class EmulatorModel {
         if active {
             startAudio()
         } else {
+            router.releaseAll()
             audioOutput?.stop()
+            protectPendingSave()
+        }
+    }
+
+    /// Keeps the app alive long enough for the paused session to hand over its save and for
+    /// the save queue to write it (the session flushes within one pause poll, ~100 ms).
+    private func protectPendingSave() {
+        // Ended after 250 ms, long before the system's expiry, so no expiration handler.
+        let task = UIApplication.shared.beginBackgroundTask(withName: "Write save", expirationHandler: nil)
+        // Runs after any save the flush enqueued, because the queue is serial.
+        Self.saveQueue.asyncAfter(deadline: .now() + .milliseconds(250)) {
+            Task { @MainActor in UIApplication.shared.endBackgroundTask(task) }
         }
     }
 

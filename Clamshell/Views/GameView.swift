@@ -12,9 +12,18 @@ struct GameView: View {
     var body: some View {
         GeometryReader { proxy in
             let container = CGRect(origin: .zero, size: proxy.size)
-            let layout = ScreenLayout(container: container, posture: posture(in: proxy),
-                                      displayScale: displayScale)
-            GameScreenView(session: model.session, layout: layout)
+            let layout = GameLayout(container: container, posture: posture(in: proxy),
+                                    displayScale: displayScale,
+                                    showsControls: !model.controllers.isUsingGamepad)
+            ZStack {
+                // Touching the screen brings the on-screen controls back after gamepad play.
+                GameScreenView(session: model.session, layout: layout.screens) {
+                    model.controllers.isUsingGamepad = false
+                }
+                if let controls = layout.controls {
+                    TouchControls(layout: controls, router: model.router)
+                }
+            }
         }
         .background(.black)
         .modifier(HingeObserver(isClosed: $hingeClosed))

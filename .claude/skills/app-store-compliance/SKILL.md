@@ -56,6 +56,9 @@ forbidden until the user decides.
   - `THIRD_PARTY_LICENSES`, updated in the **same commit** that adds, removes or bumps any
     dependency, vendored code, font, asset or test ROM. Each entry records name, version or
     commit, licence and source URL.
+- Bundled texts: `Scripts/update-licenses.sh` regenerates `Clamshell/Licenses/*.txt` (GPL text,
+  component list, and full third-party licence texts). Run it in the same commit as any
+  dependency change. `--check` detects drift.
 - In-app: Settings › Licenses shows the GPLv3 text, `THIRD_PARTY_LICENSES`, the disclaimer,
   and a link to the public source repository **and the exact tag** for this build.
 - **Corresponding source**: every shipped build is tagged. The public repo at that tag

@@ -84,6 +84,11 @@ All geometry comes from `GeometryReader`/`onGeometryChange`. Never hardcode devi
 
 ## Licensing (summary; full rules in the `app-store-compliance` skill)
 
+- After changing any dependency or `THIRD_PARTY_LICENSES`, run `Scripts/update-licenses.sh`. It
+  regenerates the full licence texts bundled in the app (`Clamshell/Licenses`, shown in About).
+  `--check` fails if they are stale.
+- `AboutView.sourceRepository` must be set to the public repo before any release.
+
 - The whole app is GPLv3. Keep `LICENSE`, `THIRD_PARTY_LICENSES` and an in-app licence
   screen, and tag every shipped build in the public repo.
 - Only GPLv3-compatible dependencies. Check the licence before adding anything.
@@ -135,6 +140,17 @@ All geometry comes from `GeometryReader`/`onGeometryChange`. Never hardcode devi
   - Then launch with the DEBUG-only argument `-ClamshellAutoplay "<game name>"`.
 - **Posture.** Folding and rotation need manual Device Hub interaction. Ask the user to check
   the clamshell and closed layouts.
+- **Touch automation.** For anything touch-driven, use a single-display simulator
+  (e.g. iPhone 18 Pro).
+  - Run AXe calls one at a time and read their output. Back-to-back calls silently drop
+    events, and it sometimes fails with "Timed out creating the simulator remote automation
+    session".
+  - Touch coordinates are window points; views are offset by the navigation bar.
+- **Keyboard and gamepad.**
+  - AXe `key` events don't reach `GCKeyboard`, so keyboard mapping is covered only by unit
+    tests. Check it by hand with Simulator › I/O › Keyboard.
+  - The Simulator always reports a virtual "Gamepad [MFi]". That's why on-screen controls hide
+    only after a gamepad is actually used.
 - **Shared simulator.** The user may be interacting with the Duo simulator. Run unattended
   test suites on another simulator.
 

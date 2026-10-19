@@ -8,17 +8,19 @@ import SwiftUI
 struct GameScreenView: UIViewRepresentable {
     let session: EmulationSession
     let layout: ScreenLayout
+    /// Called when any touch begins on the view.
+    var onTouch: () -> Void = {}
 
     func makeUIView(context: Context) -> GameMTKView {
         let view = GameMTKView(frame: .zero, device: MTLCreateSystemDefaultDevice())
-        view.session = session
-        view.layout = layout
+        updateUIView(view, context: context)
         return view
     }
 
     func updateUIView(_ view: GameMTKView, context: Context) {
         view.session = session
         view.layout = layout
+        view.onTouch = onTouch
     }
 }
 
@@ -30,6 +32,8 @@ final class GameMTKView: MTKView {
     var layout = ScreenLayout(top: .zero, bottom: .zero) {
         didSet { renderer?.layout = layout }
     }
+
+    var onTouch: () -> Void = {}
 
     private var renderer: DualScreenRenderer?
     /// The one touch currently acting as the stylus.
@@ -56,6 +60,7 @@ final class GameMTKView: MTKView {
     // MARK: Touch → stylus
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        onTouch()
         guard stylus == nil else { return }
         // Apple Pencil takes priority over fingers.
         let ordered = touches.sorted { ($0.type == .pencil ? 0 : 1) < ($1.type == .pencil ? 0 : 1) }

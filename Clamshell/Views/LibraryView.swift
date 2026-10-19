@@ -7,6 +7,7 @@ import UniformTypeIdentifiers
 struct LibraryView: View {
     let model: EmulatorModel
     @State private var isImporting = false
+    @State private var isShowingAbout = false
 
     private static let gameTypes: [UTType] = [UTType(filenameExtension: "nds") ?? .data]
 
@@ -28,7 +29,9 @@ struct LibraryView: View {
         .navigationTitle("Library")
         .toolbar {
             Button("Import Game", systemImage: "plus") { isImporting = true }
+            Button("About Clamshell", systemImage: "info.circle") { isShowingAbout = true }
         }
+        .sheet(isPresented: $isShowingAbout) { AboutView() }
         .fileImporter(isPresented: $isImporting, allowedContentTypes: Self.gameTypes,
                       allowsMultipleSelection: true) { result in
             if case .success(let urls) = result {
