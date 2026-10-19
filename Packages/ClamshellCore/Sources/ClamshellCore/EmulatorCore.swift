@@ -151,6 +151,12 @@ public final class EmulatorCore {
         }
     }
 
+    /// Copies the latest frame into caller-owned buffers of `ScreenFrame.pixelCount` pixels each.
+    @discardableResult
+    public func copyFrame(top: UnsafeMutablePointer<UInt32>, bottom: UnsafeMutablePointer<UInt32>) -> Bool {
+        clamshell_core_copy_framebuffers(handle, top, bottom)
+    }
+
     /// Reads up to `buffer.count / 2` interleaved stereo frames. Returns frames read.
     public func readAudio(into buffer: UnsafeMutableBufferPointer<Int16>) -> Int {
         Int(clamshell_core_read_audio(handle, buffer.baseAddress, Int32(buffer.count / 2)))

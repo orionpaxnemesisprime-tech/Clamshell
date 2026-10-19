@@ -19,6 +19,18 @@ ClamshellBridge.xcframework ── Core/Bridge (facade + melonDS::Platform::*) +
                                + teakra; static, ENABLE_JIT=OFF, no Qt/SDL/OpenGL
 ```
 
+Runtime pieces in `Packages/ClamshellCore`:
+- `EmulationSession`: emulation thread, pacing and input snapshot.
+- `FrameStore`: triple buffer.
+- `AudioRingBuffer`: SPSC ring.
+- `AudioOutput`.
+- `ScreenLayout`: posture geometry and touch mapping.
+
+App pieces in `Clamshell/`:
+- `Rendering/`: Metal `DualScreenRenderer` and the touch-handling `GameMTKView`.
+- `Views/`: library, and the game view with posture detection.
+- `Emulation/EmulatorModel`.
+
 Repo layout:
 - `Vendor/melonDS`: pinned submodule.
 - `Core/Bridge`: C++ bridge and its CMake build.
@@ -96,14 +108,46 @@ All geometry comes from `GeometryReader`/`onGeometryChange`. Never hardcode devi
 
 ## Build and test
 
-- First checkout: `git submodule update --init`, `brew install cmake ninja`, then
-  `Scripts/build-core.sh`. Re-run the script after changing `Core/Bridge` or `Vendor/melonDS`.
+- First checkout:
+  1. `git submodule update --init`
+  2. `brew install cmake ninja`
+  3. `xcodebuild -downloadComponent MetalToolchain` (Xcode 27 ships it separately; the app's
+     shaders need it)
+  4. `Scripts/build-core.sh`
+
+  Re-run the build script after changing `Core/Bridge` or `Vendor/melonDS`.
 - Core tests (headless Swift Testing, homebrew ROMs built from source; see `ds-emulation`):
   - Host: `cd Packages/ClamshellCore && swift test`
   - iOS Simulator: `xcodebuild test -scheme ClamshellCore -destination 'platform=iOS Simulator,name=iPhone Duo'`
     (run in `Packages/ClamshellCore`)
 - App, through MobileBuildMCP (preferred for agents) or directly:
   `xcodebuild -project Clamshell.xcodeproj -scheme Clamshell -destination 'platform=iOS Simulator,name=iPhone Duo' build`
+
+### iPhone Duo simulator notes
+
+- **Displays.** The simulator has two displays. Take screenshots with
+  `xcrun simctl io <udid> screenshot --display=3 out.png` for the inner display. Display 1 is
+  the outer display and is black while the device is open.
+- **UI automation.** AXe (bundled with MobileBuildMCP) injects taps into the primary
+  display, so it can't reach the inner display.
+  - To reach a game screen, copy a test ROM into the app container's `Documents/Games/`
+    (`xcrun simctl get_app_container <udid> com.foldingduo.Clamshell data`).
+  - Then launch with the DEBUG-only argument `-ClamshellAutoplay "<game name>"`.
+- **Posture.** Folding and rotation need manual Device Hub interaction. Ask the user to check
+  the clamshell and closed layouts.
+- **Shared simulator.** The user may be interacting with the Duo simulator. Run unattended
+  test suites on another simulator.
+
+### Project file (Xcode 27 `project.xcproj` format)
+
+The format is undocumented, so don't hand-write new structures. Instead:
+
+1. Convert a scratch copy to legacy format: `xcodebuild -project … -convert-project "Xcode 16.0"`.
+2. Edit the familiar `project.pbxproj`, and check that it builds.
+3. Convert back with `-convert-project "Xcode Project"`, and copy the result in.
+
+`xcodebuild -list` validates the file and names the bad JSON path. The local package is
+linked through `packages` plus the target's `package-product-members`.
 
 ## Agent tooling provenance
 
