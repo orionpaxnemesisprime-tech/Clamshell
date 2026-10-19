@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "swiftui-accessibility-auditor": {
+      "source": "rgmez/apple-accessibility-skills",
+      "sourceType": "github",
+      "skillPath": "skills/swiftui-accessibility-auditor/SKILL.md",
+      "computedHash": "d74db2cb9cb4543e8530c95d448d86f08498637ffec1d5bf70d7ccc3870a91ec"
+    },
+    "uikit-accessibility-auditor": {
+      "source": "rgmez/apple-accessibility-skills",
+      "sourceType": "github",
+      "skillPath": "skills/uikit-accessibility-auditor/SKILL.md",
+      "computedHash": "4b26e2d3c44d7bb5ccaeeb02893180bb5ff951c103edbcfce65f9433c385fa77"
+    }
+  }
+}

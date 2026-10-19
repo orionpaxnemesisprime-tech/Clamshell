@@ -1,0 +1,34 @@
+{
+  "enabledPlugins": {
+    "swiftui-pro@swiftui-agent-skill": true,
+    "swift-concurrency@swift-concurrency-agent-skill": true,
+    "swift-testing-expert@swift-testing-agent-skill": true,
+    "asc@rorkai": true
+  },
+  "extraKnownMarketplaces": {
+    "swiftui-agent-skill": {
+      "source": {
+        "source": "github",
+        "repo": "twostraws/SwiftUI-Agent-Skill"
+      }
+    },
+    "swift-concurrency-agent-skill": {
+      "source": {
+        "source": "github",
+        "repo": "AvdLee/Swift-Concurrency-Agent-Skill"
+      }
+    },
+    "swift-testing-agent-skill": {
+      "source": {
+        "source": "github",
+        "repo": "AvdLee/Swift-Testing-Agent-Skill"
+      }
+    },
+    "rorkai": {
+      "source": {
+        "source": "github",
+        "repo": "rorkai/app-store-connect-cli-skills"
+      }
+    }
+  }
+}
