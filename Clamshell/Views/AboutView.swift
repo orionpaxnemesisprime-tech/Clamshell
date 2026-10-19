@@ -3,9 +3,8 @@
 import SwiftUI
 
 /// App information, the non-affiliation disclaimer, source code and licences (GPLv3).
+/// Pushed from Settings.
 struct AboutView: View {
-    @Environment(\.dismiss) private var dismiss
-
     /// Public repository holding the exact source of this build. Required before release:
     /// GPLv3 needs the corresponding source to be available (see app-store-compliance).
     static let sourceRepository: URL? = nil
@@ -18,41 +17,34 @@ struct AboutView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            List {
-                Section {
-                    LabeledContent("Version", value: version)
-                    if let url = Self.sourceRepository {
-                        Link("Source Code", destination: url)
-                    }
-                } footer: {
-                    Text("Clamshell is free software, licensed under the GNU General Public License version 3.")
+        List {
+            Section {
+                LabeledContent("Version", value: version)
+                if let url = Self.sourceRepository {
+                    Link("Source Code", destination: url)
                 }
-
-                Section("Disclaimer") {
-                    Text("Clamshell is not affiliated with, endorsed by, or sponsored by Nintendo. All trademarks belong to their respective owners. Clamshell does not include any games; you must supply software you have the right to use.")
-                }
-
-                Section("Licences") {
-                    NavigationLink("GNU General Public License v3") {
-                        LicenseTextView(title: "GPL v3", resource: "GPL-3.0")
-                    }
-                    NavigationLink("Third-Party Components") {
-                        LicenseTextView(title: "Components", resource: "ThirdPartyComponents")
-                    }
-                    NavigationLink("Third-Party Licence Texts") {
-                        LicenseTextView(title: "Licence Texts", resource: "ThirdPartyNotices")
-                    }
-                }
+            } footer: {
+                Text("Clamshell is free software, licensed under the GNU General Public License version 3.")
             }
-            .navigationTitle("About Clamshell")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
+
+            Section("Disclaimer") {
+                Text("Clamshell is not affiliated with, endorsed by, or sponsored by Nintendo. All trademarks belong to their respective owners. Clamshell does not include any games; you must supply software you have the right to use.")
+            }
+
+            Section("Licences") {
+                NavigationLink("GNU General Public License v3") {
+                    LicenseTextView(title: "GPL v3", resource: "GPL-3.0")
+                }
+                NavigationLink("Third-Party Components") {
+                    LicenseTextView(title: "Components", resource: "ThirdPartyComponents")
+                }
+                NavigationLink("Third-Party Licence Texts") {
+                    LicenseTextView(title: "Licence Texts", resource: "ThirdPartyNotices")
                 }
             }
         }
+        .navigationTitle("About Clamshell")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
@@ -68,12 +60,19 @@ private struct LicenseTextView: View {
     }
 
     var body: some View {
+        // One Text per paragraph: VoiceOver gets navigable stops instead of a single ~700-line
+        // element, and long licences lay out lazily.
+        let paragraphs = text.components(separatedBy: "\n\n")
         ScrollView {
-            Text(text)
-                .font(.footnote.monospaced())
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding()
+            LazyVStack(alignment: .leading, spacing: 12) {
+                ForEach(paragraphs.indices, id: \.self) { index in
+                    Text(paragraphs[index])
+                        .font(.footnote.monospaced())
+                        .textSelection(.enabled)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
         }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)

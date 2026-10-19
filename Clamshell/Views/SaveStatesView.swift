@@ -72,8 +72,33 @@ private struct SlotRow: View {
     let slot: StateStore.Slot
     let save: () -> Void
     let load: () -> Void
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
+        // At accessibility text sizes the buttons move below the slot details instead of
+        // squeezing them.
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+            : AnyLayout(HStackLayout(spacing: 12))
+        layout {
+            details
+            HStack {
+                Button("Load", action: load)
+                    .buttonStyle(.bordered)
+                    .disabled(slot.isEmpty)
+                    // Four rows share these titles; name the slot for VoiceOver and Voice Control
+                    // while keeping the visible word as a valid spoken command.
+                    .accessibilityLabel("Load Slot \(slot.index + 1)")
+                    .accessibilityInputLabels([Text("Load"), Text("Load Slot \(slot.index + 1)")])
+                Button("Save", action: save)
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityLabel("Save to Slot \(slot.index + 1)")
+                    .accessibilityInputLabels([Text("Save"), Text("Save to Slot \(slot.index + 1)")])
+            }
+        }
+    }
+
+    private var details: some View {
         HStack(spacing: 12) {
             thumbnail
                 .frame(width: 48, height: 72)
@@ -94,13 +119,7 @@ private struct SlotRow: View {
                 }
             }
 
-            Spacer()
-
-            Button("Load", action: load)
-                .buttonStyle(.bordered)
-                .disabled(slot.isEmpty)
-            Button("Save", action: save)
-                .buttonStyle(.borderedProminent)
+            Spacer(minLength: 0)
         }
     }
 

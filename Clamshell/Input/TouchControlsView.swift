@@ -9,26 +9,30 @@ import UIKit
 struct TouchControls: UIViewRepresentable {
     let layout: ControlsLayout
     let router: InputRouter
+    /// Called when the Blow control is pressed (true) or released (false).
+    var onBlow: (Bool) -> Void = { _ in }
 
     func makeUIView(context: Context) -> TouchControlsView {
         let view = TouchControlsView()
-        view.router = router
-        view.layout = layout
+        updateUIView(view, context: context)
         return view
     }
 
     func updateUIView(_ view: TouchControlsView, context: Context) {
         view.router = router
         view.layout = layout
+        view.onBlow = onBlow
     }
 
     static func dismantleUIView(_ view: TouchControlsView, coordinator: ()) {
         view.router?.set([], from: .touchControls)
+        view.onBlow(false)
     }
 }
 
 final class TouchControlsView: UIView {
     var router: InputRouter?
+    var onBlow: (Bool) -> Void = { _ in }
     var layout: ControlsLayout? {
         didSet {
             guard layout != oldValue else { return }
@@ -47,6 +51,15 @@ final class TouchControlsView: UIView {
 
     private let feedback = UIImpactFeedbackGenerator(style: .light)
 
+    private var blowing = false {
+        didSet {
+            guard blowing != oldValue else { return }
+            if blowing { feedback.impactOccurred() }
+            onBlow(blowing)
+            setNeedsDisplay()
+        }
+    }
+
     override init(frame: CGRect) {
         super.init(frame: frame)
         isOpaque = false
@@ -56,6 +69,29 @@ final class TouchControlsView: UIView {
         isAccessibilityElement = true
         accessibilityLabel = String(localized: "Game controls")
         accessibilityTraits = .allowsDirectInteraction
+        // Switch Control, Voice Control and VoiceOver users can press each button as an action.
+        let buttons: [(String, EmulatorKeys)] = [
+            (String(localized: "Press A"), .a), (String(localized: "Press B"), .b),
+            (String(localized: "Press X"), .x), (String(localized: "Press Y"), .y),
+            (String(localized: "Press L"), .l), (String(localized: "Press R"), .r),
+            (String(localized: "Press Start"), .start), (String(localized: "Press Select"), .select),
+            (String(localized: "Press Up"), .up), (String(localized: "Press Down"), .down),
+            (String(localized: "Press Left"), .left), (String(localized: "Press Right"), .right),
+        ]
+        accessibilityCustomActions = buttons.map { name, key in
+            UIAccessibilityCustomAction(name: name) { [weak self] _ in
+                self?.tap(key)
+                return true
+            }
+        }
+    }
+
+    /// Presses and releases a button long enough for every game to notice (~6 frames).
+    private func tap(_ key: EmulatorKeys) {
+        router?.set(key, from: .accessibility)
+        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(100)) { [weak self] in
+            self?.router?.set([], from: .accessibility)
+        }
     }
 
     @available(*, unavailable)
@@ -85,6 +121,7 @@ final class TouchControlsView: UIView {
         pressed = active.reduce(into: EmulatorKeys()) { keys, touch in
             keys.formUnion(layout.keys(at: touch.location(in: self)))
         }
+        blowing = active.contains { layout.control(at: $0.location(in: self)) == .blow }
     }
 
     // MARK: Drawing
@@ -103,6 +140,10 @@ final class TouchControlsView: UIView {
                 drawDpad(in: frame, color: color)
             case .faceButtons:
                 drawFaceButtons(in: frame, color: color, ink: ink)
+            case .blow:
+                (blowing ? lit : fill).setFill()
+                UIBezierPath(roundedRect: frame, cornerRadius: frame.height / 2).fill()
+                drawLabel(String(localized: "BLOW"), centeredIn: frame, size: 11, ink: ink)
             case .l, .r, .select, .start:
                 let (key, title): (EmulatorKeys, String) = switch control {
                 case .l: (.l, "L")

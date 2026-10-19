@@ -31,10 +31,11 @@ Runtime pieces in `Packages/ClamshellCore`:
 - `StateStore`: save-state slots.
 - `MicrophoneInput`.
 - `HingeLidTracker`: fold-to-lid hysteresis.
+- `RumbleOutput`: Rumble Pak to Core Haptics.
 
 App pieces in `Clamshell/`:
 - `Rendering/`: Metal `DualScreenRenderer` and the touch-handling `GameMTKView`.
-- `Views/`: library, and the game view with posture detection.
+- `Views/`: library, the game view with posture detection, save states, Settings, and About.
 - `Emulation/EmulatorModel`.
 
 Repo layout:

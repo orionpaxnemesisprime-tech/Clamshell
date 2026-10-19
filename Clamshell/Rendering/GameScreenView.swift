@@ -8,6 +8,7 @@ import SwiftUI
 struct GameScreenView: UIViewRepresentable {
     let session: EmulationSession
     let layout: ScreenLayout
+    var smoothScaling = false
     /// Called when any touch begins on the view.
     var onTouch: () -> Void = {}
 
@@ -20,6 +21,7 @@ struct GameScreenView: UIViewRepresentable {
     func updateUIView(_ view: GameMTKView, context: Context) {
         view.session = session
         view.layout = layout
+        view.smoothScaling = smoothScaling
         view.onTouch = onTouch
     }
 }
@@ -34,6 +36,10 @@ final class GameMTKView: MTKView {
     }
 
     var onTouch: () -> Void = {}
+
+    var smoothScaling = false {
+        didSet { renderer?.smoothScaling = smoothScaling }
+    }
 
     private var renderer: DualScreenRenderer?
     /// The one touch currently acting as the stylus.

@@ -22,6 +22,8 @@ final class DualScreenRenderer: NSObject, MTKViewDelegate {
 
     var frames: FrameStore?
     var layout = ScreenLayout(top: .zero, bottom: .zero)
+    /// Always filter (soft look) instead of crisp nearest-neighbour at integer scales.
+    var smoothScaling = false
 
     init?(view: MTKView) {
         guard let device = view.device ?? MTLCreateSystemDefaultDevice(),
@@ -109,7 +111,7 @@ final class DualScreenRenderer: NSObject, MTKViewDelegate {
                                                 width: rect.width * scale, height: rect.height * scale,
                                                 znear: 0, zfar: 1))
                 encoder.setFragmentTexture(texture, index: 0)
-                encoder.setFragmentSamplerState(isInteger ? nearest : linear, index: 0)
+                encoder.setFragmentSamplerState(isInteger && !smoothScaling ? nearest : linear, index: 0)
                 encoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
             }
         }

@@ -21,20 +21,17 @@ final class EmulatorModel {
     let session: EmulationSession
     let router: InputRouter
     let controllers: GameControllerInput
+    let settings: AppSettings
     private(set) var library: [GameFile] = []
     private(set) var currentGame: GameFile?
     var errorMessage: String?
 
     /// Lid closed by the player's button.
     var isLidClosedManually = false { didSet { applyLid() } }
-    /// When on, folding the device shut (below ~10°) closes the emulated lid.
-    var foldClosesLid = UserDefaults.standard.bool(forKey: "foldClosesLid") {
-        didSet {
-            UserDefaults.standard.set(foldClosesLid, forKey: "foldClosesLid")
-            applyLid()
-        }
-    }
     private(set) var isLidClosed = false
+    /// True while the running game has its microphone open (the Blow button shows then).
+    private(set) var isMicrophoneActive = false
+    @ObservationIgnored private let microphone: MicrophoneInput
     @ObservationIgnored private var hingeLid = HingeLidTracker()
     @ObservationIgnored private var hasExplainedMicrophoneDenial = false
 
@@ -55,18 +52,36 @@ final class EmulatorModel {
     /// Per-game SD card images for homebrew (DLDI). Large but sparse, so kept out of Documents.
     private static let sdCardDirectory = URL.applicationSupportDirectory.appending(path: "SDCards", directoryHint: .isDirectory)
 
-    init() {
+    init(settings: AppSettings = AppSettings()) {
+        self.settings = settings
         let microphone = MicrophoneInput()
-        session = EmulationSession(microphone: microphone)
+        self.microphone = microphone
+        session = EmulationSession(microphone: microphone, rumble: RumbleOutput())
         router = InputRouter(session: session)
         controllers = GameControllerInput(router: router)
         microphone.onPermissionDenied = { [weak self] in
             Task { @MainActor in
                 guard let self, !self.hasExplainedMicrophoneDenial else { return }
                 self.hasExplainedMicrophoneDenial = true
-                self.errorMessage = String(localized: "Microphone access is off, so the game hears silence. You can turn it on in Settings.")
+                self.errorMessage = String(localized: "Microphone access is off, so the game hears silence. Use the Blow button, or turn access on in Settings.")
             }
         }
+        microphone.onActiveChanged = { [weak self] active in
+            Task { @MainActor in
+                self?.isMicrophoneActive = active
+                if !active { self?.setBlowing(false) }
+            }
+        }
+    }
+
+    /// While true, the game hears a recorded blow instead of the microphone.
+    func setBlowing(_ blowing: Bool) {
+        microphone.isBlowing = blowing
+    }
+
+    /// Re-applies the lid after the "Folding Closes Lid" setting changes.
+    func foldSettingChanged() {
+        applyLid()
     }
 
     func refreshLibrary() {
@@ -105,7 +120,8 @@ final class EmulatorModel {
             try? FileManager.default.createDirectory(at: Self.sdCardDirectory, withIntermediateDirectories: true)
             try session.start(rom: rom, save: store.load(identifier: saveID),
                               name: game.url.lastPathComponent,
-                              sdCard: Self.sdCardDirectory.appending(path: "\(saveID).img")) { memory in
+                              sdCard: Self.sdCardDirectory.appending(path: "\(saveID).img"),
+                              rumblePak: settings.rumblePak) { memory in
                 queue.async {
                     do {
                         try store.write(memory, identifier: saveID)
@@ -142,7 +158,7 @@ final class EmulatorModel {
     }
 
     private func applyLid() {
-        let closed = isLidClosedManually || (foldClosesLid && hingeLid.isClosed)
+        let closed = isLidClosedManually || (settings.foldClosesLid && hingeLid.isClosed)
         guard closed != isLidClosed else { return }
         isLidClosed = closed
         session.setLidClosed(closed)

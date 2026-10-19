@@ -9,20 +9,26 @@ struct GameView: View {
     @Environment(\.displayScale) private var displayScale
     @State private var hingeClosed = false
     @State private var isShowingStates = false
+    @State private var isShowingSettings = false
 
     var body: some View {
         GeometryReader { proxy in
             let container = CGRect(origin: .zero, size: proxy.size)
             let layout = GameLayout(container: container, posture: posture(in: proxy),
                                     displayScale: displayScale,
-                                    showsControls: !model.controllers.isUsingGamepad)
+                                    showsControls: !model.controllers.isUsingGamepad
+                                        || model.settings.alwaysShowTouchControls,
+                                    showsBlow: model.isMicrophoneActive)
             ZStack {
                 // Touching the screen brings the on-screen controls back after gamepad play.
-                GameScreenView(session: model.session, layout: layout.screens) {
+                GameScreenView(session: model.session, layout: layout.screens,
+                               smoothScaling: model.settings.smoothScaling) {
                     model.controllers.isUsingGamepad = false
                 }
                 if let controls = layout.controls {
-                    TouchControls(layout: controls, router: model.router)
+                    TouchControls(layout: controls, router: model.router) { blowing in
+                        model.setBlowing(blowing)
+                    }
                 }
             }
         }
@@ -41,15 +47,17 @@ struct GameView: View {
                            systemImage: model.isLidClosedManually ? "laptopcomputer" : "laptopcomputer.slash") {
                         model.isLidClosedManually.toggle()
                     }
-                    Toggle("Folding Closes Lid", systemImage: "iphone.gen3",
-                           isOn: Binding(get: { model.foldClosesLid }, set: { model.foldClosesLid = $0 }))
+                    Button("Settings…", systemImage: "gearshape") { isShowingSettings = true }
                 }
             }
         }
         .sheet(isPresented: $isShowingStates) {
             SaveStatesView(model: model)
         }
-        .onChange(of: isShowingStates) { _, showing in
+        .sheet(isPresented: $isShowingSettings) {
+            SettingsView(model: model)
+        }
+        .onChange(of: isShowingStates || isShowingSettings) { _, showing in
             model.session.isPaused = showing
         }
         .navigationTitle(model.currentGame?.name ?? "")
