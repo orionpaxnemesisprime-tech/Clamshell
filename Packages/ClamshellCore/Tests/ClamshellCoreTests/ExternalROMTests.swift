@@ -22,6 +22,9 @@ struct ExternalROMTests {
             try? FileManager.default.removeItem(at: sdCard.appendingPathExtension("idx"))
         }
         let name = URL(filePath: path).lastPathComponent
+        let banner = GameBanner.read(from: URL(filePath: path))
+        let opaquePixels = (banner?.iconRGBA ?? []).enumerated().filter { $0.offset % 4 == 3 && $0.element > 0 }.count
+        print("External ROM: banner title \(banner?.titleLines ?? []), \(opaquePixels) opaque icon pixels")
         for attempt in ["fresh SD image", "existing SD image"] {
             let start = ContinuousClock.now
             try EmulatorCore().loadROM(rom, name: name, sdCard: sdCard)

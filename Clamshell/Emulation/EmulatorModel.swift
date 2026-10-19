@@ -9,8 +9,22 @@ import UIKit
 /// A game file the user imported into the app's library.
 struct GameFile: Identifiable, Hashable {
     let url: URL
+    /// The icon and title stored in the game file, if it has a banner.
+    var banner: GameBanner?
+
     var id: URL { url }
+    /// File name without extension (also what `-ClamshellAutoplay` matches).
     var name: String { url.deletingPathExtension().lastPathComponent }
+    /// The game's own title when it has one, otherwise the file name.
+    var displayTitle: String { banner?.titleLines.first ?? name }
+    /// Remaining banner lines (usually subtitle and author).
+    var subtitle: String? {
+        guard let lines = banner?.titleLines, lines.count > 1 else { return nil }
+        return lines.dropFirst().joined(separator: " · ")
+    }
+
+    static func == (lhs: GameFile, rhs: GameFile) -> Bool { lhs.url == rhs.url }
+    func hash(into hasher: inout Hasher) { hasher.combine(url) }
 }
 
 /// Owns the emulation session and the user's game library.
@@ -87,10 +101,23 @@ final class EmulatorModel {
     func refreshLibrary() {
         let files = (try? FileManager.default.contentsOfDirectory(
             at: Self.gamesDirectory, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])) ?? []
+        // Banners are ~1 KB reads each, so this stays fast for large libraries.
         library = files
             .filter { $0.pathExtension.lowercased() == "nds" }
-            .map(GameFile.init)
-            .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+            .map { GameFile(url: $0, banner: GameBanner.read(from: $0)) }
+            .sorted { $0.displayTitle.localizedStandardCompare($1.displayTitle) == .orderedAscending }
+    }
+
+    /// Removes the game file. Its battery save and save states stay, so re-importing the same
+    /// game picks them up again.
+    func deleteGame(_ game: GameFile) {
+        do {
+            try FileManager.default.removeItem(at: game.url)
+        } catch {
+            Self.logger.error("Delete failed: \(error.localizedDescription, privacy: .public)")
+            errorMessage = String(localized: "The game couldn’t be deleted.")
+        }
+        refreshLibrary()
     }
 
     /// Copies a user-selected file into the library. Clamshell never downloads games.
