@@ -43,6 +43,19 @@ struct LibraryView: View {
             } header: {
                 if model.resumeGame != nil { Text("All Games") }
             }
+
+            // The empty state has its own Find Homebrew button.
+            if !model.library.isEmpty {
+                Section {
+                    NavigationLink {
+                        FindHomebrewView()
+                    } label: {
+                        Label("Find Homebrew", systemImage: "sparkles")
+                    }
+                } footer: {
+                    Text("Original games their authors share for free.")
+                }
+            }
         }
         .overlay {
             if model.library.isEmpty {
@@ -52,6 +65,7 @@ struct LibraryView: View {
                     Text("Import game files you have the right to use. Clamshell doesn’t include any games.")
                 } actions: {
                     Button("Import Games") { isImporting = true }
+                    NavigationLink("Find Homebrew") { FindHomebrewView() }
                 }
             }
         }

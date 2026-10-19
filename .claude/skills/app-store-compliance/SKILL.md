@@ -27,6 +27,20 @@ forbidden until the user decides.
   - upload, sync or share imported BIOS/firmware/ROMs to any server. That includes analytics
     and crash reports: never attach file contents, names or hashes.
 - Imported BIOS/firmware stays in the app container and can be deleted from Settings.
+- **Find Homebrew (link-out only)** — decided 2026-10-19: Clamshell may *link* to original
+  homebrew on its author's own release page (`HomebrewGame.catalog` in
+  `Clamshell/Views/FindHomebrewView.swift`), but never hosts, downloads or redistributes it
+  (no written permissions were obtained, so in-app downloads are not allowed). Each entry
+  must be:
+  - original work, not based on another company's games, characters or trademarks, and with
+    no themes that promote alcohol, drugs or tobacco (App Review 1.4.3);
+  - under a published licence that allows download;
+  - linked to its individual project or release page, never to a list or site that also
+    carries ports or ROMs of others' games;
+  - verified to boot in Clamshell;
+  - described in our own neutral words, with no third-party trademarks.
+
+  The catalog is compiled into the app so App Review sees exactly what is linked.
 
 ## 2. Trademarks and trade dress
 
