@@ -243,6 +243,16 @@ Notes:
     `0x02200000`, echoes KEYINPUT at `+4`, keeps a loop counter at `+8`, and draws known
     colours. Read these with `EmulatorCore.debugRead32`; direct boot leaves the ARM9 data
     cache off.
+  - Homebrew images (the default) get **no save memory**. For save tests, build a
+    cartridge-style image with `--game-code ZCLS --arm9-offset 0x8000`; melonDS then assumes a
+    64 Kbit EEPROM. `savetest` keeps a boot counter there over AUXSPI.
+  - In assembly, call subroutines with `mov lr, pc` then `b label`: `bl` always emits a
+    relocation, which the generator rejects.
+  - Existing ROMs:
+    - `smoketest`: boot, framebuffer, keys.
+    - `iotest`: TSC touch paint, PSG tone while touching, mic while X is held, top screen red
+      while a key is held.
+    - `savetest`: EEPROM.
   - Don't name a test resource folder `Resources`: codesign rejects such iOS test bundles. Third-party CPU test ROMs (for example the armwrestler
   family) may be added only after confirming their licence. Record the licence in
   `THIRD_PARTY_LICENSES`.

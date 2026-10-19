@@ -46,8 +46,14 @@ public final class EmulationSession: Sendable {
 
     // MARK: Lifecycle
 
+    /// Called on the emulation thread with a copy of the whole battery save, at most once per
+    /// `saveDebounce` while the game keeps writing, and again when pausing or stopping.
+    public typealias SaveHandler = @Sendable (_ saveMemory: [UInt8]) -> Void
+
     /// Validates the ROM on the calling thread, then starts the emulation thread.
-    public func start(rom: [UInt8], save: [UInt8]? = nil, name: String) throws(EmulatorError) {
+    public func start(rom: [UInt8], save: [UInt8]? = nil, name: String,
+                      saveDebounce: Duration = .seconds(1),
+                      onSave: SaveHandler? = nil) throws(EmulatorError) {
         stop()
         // Validate synchronously so callers get a load error immediately.
         try EmulatorCore(audioSampleRate: audioSampleRate).loadROM(rom, save: save, name: name)
@@ -59,7 +65,7 @@ public final class EmulationSession: Sendable {
         let finished = DispatchSemaphore(value: 0)
         runFinished.withLock { $0 = finished }
         let thread = Thread { [self] in
-            run(rom: rom, save: save, name: name)
+            run(rom: rom, save: save, name: name, saveDebounce: saveDebounce, onSave: onSave)
             finished.signal()
         }
         thread.name = "Clamshell emulation"
@@ -97,12 +103,24 @@ public final class EmulationSession: Sendable {
 
     // MARK: Emulation thread
 
-    private func run(rom: [UInt8], save: [UInt8]?, name: String) {
+    private func run(rom: [UInt8], save: [UInt8]?, name: String,
+                     saveDebounce: Duration, onSave: SaveHandler?) {
         defer { control.withLock { $0.running = false } }
 
         let core = EmulatorCore(audioSampleRate: audioSampleRate)
+        let saves = SaveTracker()
+        core.delegate = saves
         do { try core.loadROM(rom, save: save, name: name) } catch { return }
         core.start()
+
+        // Hands the current save memory to `onSave` if the game wrote to it.
+        func flushSave(force: Bool) {
+            guard let onSave, let lastWrite = saves.lastWrite else { return }
+            guard force || ContinuousClock.now - lastWrite >= saveDebounce else { return }
+            saves.lastWrite = nil
+            if let memory = core.saveMemory() { onSave(memory) }
+        }
+        defer { flushSave(force: true) }
 
         var pacer = FramePacer(frameRate: EmulatorCore.frameRate)
         var applied = Control()
@@ -116,6 +134,7 @@ public final class EmulationSession: Sendable {
             if wanted.stopRequested { break }
 
             if wanted.paused {
+                flushSave(force: true) // pausing usually means the app is going to the background
                 _ = wake.wait(timeout: .now() + .milliseconds(100))
                 pacer.reset()
                 continue
@@ -135,6 +154,7 @@ public final class EmulationSession: Sendable {
             core.runFrame()
             if !core.isRunning { break } // the game powered the console off
             frames.publish { top, bottom in core.copyFrame(top: top, bottom: bottom) }
+            flushSave(force: false)
 
             audioScratch.withUnsafeMutableBufferPointer { buffer in
                 while true {
@@ -163,5 +183,14 @@ public final class EmulationSession: Sendable {
         }
 
         core.stop()
+    }
+}
+
+/// Lives on the emulation thread; remembers when the game last wrote its battery save.
+private final class SaveTracker: EmulatorCoreDelegate {
+    var lastWrite: ContinuousClock.Instant?
+
+    func emulatorCore(_ core: EmulatorCore, didWriteSave saveMemory: UnsafeRawBufferPointer, range: Range<Int>) {
+        lastWrite = .now
     }
 }

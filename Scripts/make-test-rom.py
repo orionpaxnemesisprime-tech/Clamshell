@@ -2,13 +2,19 @@
 # Builds a homebrew test ROM from ARM9/ARM7 assembly using Xcode's clang (no devkit needed).
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
-# Usage: Scripts/make-test-rom.py <rom-source-dir> <output.nds>
+# Usage: Scripts/make-test-rom.py <rom-source-dir> <output.nds> [--game-code CODE] [--arm9-offset N]
+#
+# By default the image is "homebrew" (game code ####, ARM9 at 0x200), which melonDS gives no
+# save memory. A save test needs a cartridge-style image: pass a 4-letter --game-code that is
+# not a real title and --arm9-offset 0x8000 (>= 0x8000 also skips the secure-area handling);
+# melonDS then assumes a 64 Kbit EEPROM.
 #
 # The source dir holds arm9.s and arm7.s. Both must be position-independent within one
 # .text section (no relocations); they are loaded at fixed addresses by direct boot.
 # The header deliberately leaves the logo area zeroed: Clamshell boots with FreeBIOS, which
 # does not check it, and we never ship third-party logo data.
 
+import argparse
 import hashlib
 import os
 import struct
@@ -18,7 +24,7 @@ import tempfile
 
 ARM9_ADDRESS = 0x02000000
 ARM7_ADDRESS = 0x037F8000
-ARM9_ROM_OFFSET = 0x200  # < 0x4000 marks the image as homebrew for melonDS
+HOMEBREW_ARM9_OFFSET = 0x200  # < 0x4000 marks the image as homebrew for melonDS
 MIN_ROM_SIZE = 0x1000
 
 
@@ -71,36 +77,43 @@ def crc16(data):
     return crc
 
 
-def build(src_dir, title):
+def build(src_dir, title, game_code="####", arm9_offset=HOMEBREW_ARM9_OFFSET):
     arm9 = assemble(os.path.join(src_dir, "arm9.s"), "armv5te")
     arm7 = assemble(os.path.join(src_dir, "arm7.s"), "armv4t")
     arm9 += b"\0" * (align(len(arm9), 4) - len(arm9))
     arm7 += b"\0" * (align(len(arm7), 4) - len(arm7))
 
-    arm7_offset = align(ARM9_ROM_OFFSET + len(arm9), 0x200)
+    arm7_offset = align(arm9_offset + len(arm9), 0x200)
     used_size = arm7_offset + len(arm7)
 
     header = bytearray(0x200)
     header[0x000:0x00C] = title.upper().encode("ascii")[:12].ljust(12, b"\0")
-    header[0x00C:0x010] = b"####"  # homebrew game code
+    header[0x00C:0x010] = game_code.encode("ascii")
     header[0x010:0x012] = b"00"
-    struct.pack_into("<IIII", header, 0x020, ARM9_ROM_OFFSET, ARM9_ADDRESS, ARM9_ADDRESS, len(arm9))
+    struct.pack_into("<IIII", header, 0x020, arm9_offset, ARM9_ADDRESS, ARM9_ADDRESS, len(arm9))
     struct.pack_into("<IIII", header, 0x030, arm7_offset, ARM7_ADDRESS, ARM7_ADDRESS, len(arm7))
     struct.pack_into("<II", header, 0x080, used_size, 0x4000)
     struct.pack_into("<H", header, 0x15E, crc16(header[:0x15E]))
 
     rom = bytearray(max(MIN_ROM_SIZE, align(used_size, 0x200)))
     rom[:0x200] = header
-    rom[ARM9_ROM_OFFSET:ARM9_ROM_OFFSET + len(arm9)] = arm9
+    rom[arm9_offset:arm9_offset + len(arm9)] = arm9
     rom[arm7_offset:arm7_offset + len(arm7)] = arm7
     return bytes(rom)
 
 
 def main():
-    if len(sys.argv) != 3:
-        sys.exit(__doc__ or "usage: make-test-rom.py <rom-source-dir> <output.nds>")
-    src_dir, output = sys.argv[1], sys.argv[2]
-    rom = build(src_dir, os.path.basename(os.path.normpath(src_dir)))
+    parser = argparse.ArgumentParser(description="Build a Clamshell test ROM from assembly.")
+    parser.add_argument("src_dir")
+    parser.add_argument("output")
+    parser.add_argument("--game-code", default="####")
+    parser.add_argument("--arm9-offset", type=lambda v: int(v, 0), default=HOMEBREW_ARM9_OFFSET)
+    args = parser.parse_args()
+    if len(args.game_code) != 4 or not args.game_code.isascii():
+        sys.exit("--game-code must be 4 ASCII characters")
+    rom = build(args.src_dir, os.path.basename(os.path.normpath(args.src_dir)),
+                args.game_code, args.arm9_offset)
+    output = args.output
     with open(output, "wb") as f:
         f.write(rom)
     print(f"{output}: {len(rom)} bytes, sha256 {hashlib.sha256(rom).hexdigest()}")
