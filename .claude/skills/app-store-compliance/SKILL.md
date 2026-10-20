@@ -158,6 +158,7 @@ forbidden until the user decides.
 2. The build tag is pushed publicly, and the source link in the app points at it.
 3. No Nintendo names or likeness in the name, icon, UI, screenshots or metadata;
    the disclaimer is present.
-4. No ROMs or BIOS in the bundle (inspect the `.app`), and no download or search URLs.
+4. No ROMs or BIOS in the bundle (`Scripts/check-app-bundle.sh` on the release `.app`; CI runs
+   it on every build), and no download or search URLs.
 5. No JIT entitlements or symbols. The privacy manifest and purpose strings are complete.
 6. The melonDS copyright-holder confirmation is on record (see §3).
