@@ -15,7 +15,8 @@ concurrency:
 
 jobs:
   build-and-test:
-    runs-on: macos-latest
+    # GitHub names its macOS images after the Xcode major version they carry.
+    runs-on: xcode-27
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
@@ -24,13 +25,15 @@ jobs:
 
       - name: Select Xcode 27
         run: |
-          xcode=$(ls -d /Applications/Xcode_27*.app 2>/dev/null | sort -V | tail -1)
-          if [ -z "$xcode" ]; then
-            echo "::error::This runner has no Xcode 27; Clamshell needs the iOS 27 SDK."
-            ls -d /Applications/Xcode*.app
-            exit 1
+          if ! xcodebuild -version | grep -q '^Xcode 27'; then
+            xcode=$(ls -d /Applications/Xcode_27*.app /Applications/Xcode-beta.app 2>/dev/null | sort -V | tail -1)
+            if [ -z "$xcode" ]; then
+              echo "::error::This runner has no Xcode 27; Clamshell needs the iOS 27 SDK."
+              ls -d /Applications/Xcode*.app
+              exit 1
+            fi
+            sudo xcode-select -s "$xcode"
           fi
-          sudo xcode-select -s "$xcode"
           xcodebuild -version
 
       - name: Install build tools
