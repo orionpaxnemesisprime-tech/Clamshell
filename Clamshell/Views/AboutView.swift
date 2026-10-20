@@ -7,7 +7,7 @@ import SwiftUI
 struct AboutView: View {
     /// Public repository holding the exact source of this build. Required before release:
     /// GPLv3 needs the corresponding source to be available (see app-store-compliance).
-    static let sourceRepository: URL? = nil
+    static let sourceRepository: URL? = URL(string: "https://github.com/orionpaxnemesisprime-tech/Clamshell")
 
     private var version: String {
         let info = Bundle.main.infoDictionary
