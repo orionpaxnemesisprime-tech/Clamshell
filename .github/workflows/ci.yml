@@ -25,16 +25,20 @@ jobs:
 
       - name: Select Xcode 27
         run: |
-          if ! xcodebuild -version | grep -q '^Xcode 27'; then
-            xcode=$(ls -d /Applications/Xcode_27*.app /Applications/Xcode-beta.app 2>/dev/null | sort -V | tail -1)
-            if [ -z "$xcode" ]; then
-              echo "::error::This runner has no Xcode 27; Clamshell needs the iOS 27 SDK."
-              ls -d /Applications/Xcode*.app
-              exit 1
-            fi
-            sudo xcode-select -s "$xcode"
+          # The newest Xcode 27: the fold and hinge APIs need the iOS 27.1+ SDK at compile time.
+          ls -d /Applications/Xcode*.app
+          xcode=$(ls -d /Applications/Xcode_27*.app 2>/dev/null | sort -V | tail -1)
+          if [ -z "$xcode" ]; then
+            echo "::error::This runner has no Xcode 27; Clamshell needs the iOS 27.1+ SDK."
+            exit 1
           fi
+          sudo xcode-select -s "$xcode"
           xcodebuild -version
+          sdk=$(xcrun --sdk iphonesimulator --show-sdk-version)
+          if [ "$(printf '%s\n' 27.1 "$sdk" | sort -V | head -1)" != 27.1 ]; then
+            echo "::error::$xcode has the iOS $sdk SDK; Clamshell needs 27.1 or later."
+            exit 1
+          fi
 
       - name: Install build tools
         run: brew install cmake ninja
