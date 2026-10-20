@@ -49,8 +49,10 @@ jobs:
       - name: Check bundled licence texts
         run: Scripts/update-licenses.sh --check
 
+      # Serial, so the real-time pacing test isn't starved by other suites' emulators on the
+      # runner's few cores.
       - name: Core tests
-        run: swift test --package-path Packages/ClamshellCore
+        run: swift test --package-path Packages/ClamshellCore --no-parallel
 
       - name: Build the app
         run: |
