@@ -7,13 +7,16 @@ import Foundation
 struct FramePacer {
     let period: Duration
     /// If the loop falls this far behind (e.g. after a stall), re-anchor instead of racing.
+    /// Shorter lags are caught up with back-to-back frames: sleeps can overshoot by tens of
+    /// milliseconds (low-power modes, virtual machines), and re-anchoring after each one
+    /// would lose time for good and slow the game down.
     let maxLag: Duration
     private let clock = ContinuousClock()
     private var deadline: ContinuousClock.Instant
 
-    init(frameRate: Double) {
+    init(frameRate: Double, maxLag: Duration = .milliseconds(250)) {
         period = .seconds(1 / frameRate)
-        maxLag = period * 3
+        self.maxLag = maxLag
         deadline = clock.now
     }
 
