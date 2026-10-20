@@ -163,14 +163,35 @@ struct EmulationSessionTests {
         return Array(try Data(contentsOf: url))
     }
 
+    /// Frames per second the core manages with no pacing, so the pacing check below can tell
+    /// a slow host (shared CI machines run the interpreter below full speed) from a pacing bug.
+    private func unpacedFrameRate() throws -> Double {
+        let core = EmulatorCore()
+        try core.loadROM(rom("iotest"), name: "iotest.nds")
+        core.start()
+        let frames = 60
+        let start = ContinuousClock.now
+        for _ in 0..<frames { core.runFrame() }
+        let elapsed = ContinuousClock.now - start
+        return Double(frames) / (Double(elapsed.components.seconds) + Double(elapsed.components.attoseconds) / 1e18)
+    }
+
     @Test func runsAtTheHandheldFrameRate() throws {
+        let headroom = try unpacedFrameRate() > EmulatorCore.frameRate * 1.25
         let session = EmulationSession()
         try session.start(rom: rom("iotest"), name: "iotest.nds")
         defer { session.stop() }
         Thread.sleep(forTimeInterval: 2.2)
         let stats = session.statistics
-        #expect(abs(stats.framesPerSecond - EmulatorCore.frameRate) < 2, "paced at ~59.83 fps, got \(stats.framesPerSecond)")
-        #expect(stats.framesRun > 120 && stats.framesRun < 140)
+        // Pacing must never run fast; at full speed it must hold the handheld's rate.
+        #expect(stats.framesPerSecond < EmulatorCore.frameRate + 2, "paced at most ~59.83 fps, got \(stats.framesPerSecond)")
+        #expect(stats.framesRun < 140)
+        if headroom {
+            #expect(abs(stats.framesPerSecond - EmulatorCore.frameRate) < 2, "paced at ~59.83 fps, got \(stats.framesPerSecond)")
+            #expect(stats.framesRun > 120)
+        } else {
+            #expect(stats.framesRun > 0, "a slow host still runs frames")
+        }
         #expect(session.frames.generation == stats.framesRun)
         #expect(session.audio.framesAvailable > 0, "audio flows into the ring")
     }
