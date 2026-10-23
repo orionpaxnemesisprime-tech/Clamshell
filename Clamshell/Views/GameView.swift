@@ -8,6 +8,7 @@ struct GameView: View {
     let model: EmulatorModel
     @Environment(\.displayScale) private var displayScale
     @State private var hingeClosed = false
+    @State private var hingeFullyOpen = false
     @State private var isShowingStates = false
     @State private var isShowingSettings = false
 
@@ -22,20 +23,25 @@ struct GameView: View {
             ZStack {
                 // Touching the screen brings the on-screen controls back after gamepad play.
                 GameScreenView(session: model.session, layout: layout.screens,
-                               smoothScaling: model.settings.smoothScaling) {
+                               smoothScaling: model.settings.smoothScaling,
+                               background: model.settings.controlsTheme.background) {
                     model.controllers.isUsingGamepad = false
                 }
                 if let controls = layout.controls {
-                    TouchControls(layout: controls, router: model.router) { blowing in
+                    TouchControls(layout: controls, router: model.router,
+                                  theme: model.settings.controlsTheme,
+                                  directionalControl: model.settings.directionalControl) { blowing in
                         model.setBlowing(blowing)
                     }
                 }
             }
         }
-        .background(.black)
-        .modifier(HingeObserver(isClosed: $hingeClosed) { degrees in
+        .background(Color(uiColor: model.settings.controlsTheme.background))
+        .modifier(HingeObserver(isClosed: $hingeClosed, isFullyOpen: $hingeFullyOpen) { degrees in
             model.hingeAngleChanged(degrees: degrees)
         })
+        // Fully open, the inner display plays best upright: screens stacked, controls below.
+        .portraitLocked(hingeFullyOpen)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Close", systemImage: "xmark") {
@@ -65,6 +71,7 @@ struct GameView: View {
         }
         .navigationTitle(model.currentGame?.name ?? "")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarColorScheme(model.settings.controlsTheme.colorScheme, for: .navigationBar)
         .persistentSystemOverlays(.hidden)
     }
 
@@ -82,6 +89,7 @@ struct GameView: View {
 /// Tracks a foldable device's hinge (iOS 27.1+; never closed elsewhere).
 private struct HingeObserver: ViewModifier {
     @Binding var isClosed: Bool
+    @Binding var isFullyOpen: Bool
     /// Hinge angle in degrees (180 = fully open, 0 = closed).
     let onAngle: (Double) -> Void
 
@@ -89,6 +97,7 @@ private struct HingeObserver: ViewModifier {
         if #available(iOS 27.1, *) {
             content.onHingeChange { _, new in
                 isClosed = new.hinge?.status == .closed
+                isFullyOpen = new.hinge?.status == .fullyOpen
                 if let hinge = new.hinge { onAngle(hinge.angle.degrees) }
             }
         } else {

@@ -14,7 +14,7 @@ import Testing
             for b in frames[(i + 1)...] { #expect(!a.intersects(b), "controls don't overlap") }
         }
         if controls.placement != .overlay {
-            for frame in frames where frame != controls.frames[.l] && frame != controls.frames[.r] {
+            for frame in frames {
                 #expect(!frame.intersects(screens.top) && !frame.intersects(screens.bottom),
                         "dedicated controls never cover the screens")
             }
@@ -61,6 +61,29 @@ import Testing
         expectValid(controls, container: container, screens: screens)
     }
 
+    static let shoulderCases: [(CGRect, ScreenPosture)] = [
+        (CGRect(x: 0, y: 0, width: 951, height: 669), .clamshell(fold: CGRect(x: 0, y: 325, width: 951, height: 20))),
+        (CGRect(x: 0, y: 0, width: 951, height: 669), .sideBySide),
+        (CGRect(x: 0, y: 0, width: 669, height: 951), .stacked),
+        (CGRect(x: 0, y: 0, width: 400, height: 640), .stacked),
+    ]
+
+    @Test(arguments: shoulderCases)
+    func shouldersSitAboveTheirClusters(container: CGRect, posture: ScreenPosture) throws {
+        let layout = GameLayout(container: container, posture: posture, displayScale: 3, showsControls: true)
+        let controls = try #require(layout.controls)
+        let l = try #require(controls.frames[.l]), r = try #require(controls.frames[.r])
+        let dpad = try #require(controls.frames[.dpad]), face = try #require(controls.frames[.faceButtons])
+        #expect(l.midX == dpad.midX && r.midX == face.midX, "each shoulder is centred on its cluster")
+        #expect(l.minY == r.minY, "shoulders are level")
+        #expect(l.maxY <= dpad.minY && r.maxY <= face.minY, "shoulders are above their clusters")
+        #expect(face.minY - r.maxY <= 12, "and right next to them")
+        if case .clamshell(let fold) = posture {
+            #expect(l.minY >= fold.maxY, "shoulders stay on the touch-screen side of the fold")
+        }
+        expectValid(controls, container: container, screens: layout.screens)
+    }
+
     static let dpadCases: [(CGPoint, EmulatorKeys)] = [
         (CGPoint(x: 0, y: -50), .up), (CGPoint(x: 0, y: 50), .down),
         (CGPoint(x: -50, y: 0), .left), (CGPoint(x: 50, y: 0), .right),
@@ -73,6 +96,29 @@ import Testing
         let frame = CGRect(x: 0, y: 0, width: 132, height: 132)
         let point = CGPoint(x: frame.midX + offset.x, y: frame.midY + offset.y)
         #expect(ControlsLayout.dpadKeys(at: point, in: frame) == expected)
+    }
+
+    static let stickCases: [(CGPoint, EmulatorKeys)] = [
+        (CGPoint(x: 0, y: -30), .up), (CGPoint(x: 30, y: 30), [.down, .right]),
+        // Within a quarter of the 66-point radius: dead zone.
+        (CGPoint(x: 10, y: -10), []),
+        // Thumb slid well past the stick's base: still steering.
+        (CGPoint(x: -200, y: 0), .left), (CGPoint(x: 150, y: -160), [.up, .right]),
+    ]
+
+    @Test(arguments: stickCases)
+    func stickDirections(offset: CGPoint, expected: EmulatorKeys) {
+        let frame = CGRect(x: 0, y: 0, width: 132, height: 132)
+        let point = CGPoint(x: frame.midX + offset.x, y: frame.midY + offset.y)
+        #expect(ControlsLayout.stickKeys(at: point, in: frame) == expected)
+    }
+
+    @Test func stickKnobStaysWithinItsTravel() {
+        let frame = CGRect(x: 0, y: 0, width: 132, height: 132)
+        #expect(ControlsLayout.stickKnobCenter(for: CGPoint(x: 80, y: 66), in: frame, travel: 40)
+            == CGPoint(x: 80, y: 66))
+        #expect(ControlsLayout.stickKnobCenter(for: CGPoint(x: 366, y: 66), in: frame, travel: 40)
+            == CGPoint(x: 106, y: 66))
     }
 
     @Test func faceButtonsFollowTheDiamond() {

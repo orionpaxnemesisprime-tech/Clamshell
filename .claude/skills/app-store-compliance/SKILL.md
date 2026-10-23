@@ -60,8 +60,9 @@ forbidden until the user decides.
 
 ## 2. Trademarks and trade dress
 
-- Never use "Nintendo", "DS", "DSi", "3DS", "Nintendo DS", "NDS" or any Nintendo game or
-  character name in any of these:
+- Never use "Nintendo", "DS", "DSi", "3DS", "Nintendo DS", "NDS", Nintendo accessory names
+  ("Rumble Pak": say "rumble accessory") or any Nintendo game or character name in any of
+  these:
   - app name, subtitle or keywords;
   - bundle display name or icon;
   - UI strings, in-app screenshots or App Store screenshots;

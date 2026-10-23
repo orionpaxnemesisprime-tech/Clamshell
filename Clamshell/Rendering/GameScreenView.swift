@@ -9,6 +9,8 @@ struct GameScreenView: UIViewRepresentable {
     let session: EmulationSession
     let layout: ScreenLayout
     var smoothScaling = false
+    /// Fills the area around the screens.
+    var background = UIColor.black
     /// Called when any touch begins on the view.
     var onTouch: () -> Void = {}
 
@@ -22,6 +24,7 @@ struct GameScreenView: UIViewRepresentable {
         view.session = session
         view.layout = layout
         view.smoothScaling = smoothScaling
+        view.background = background
         view.onTouch = onTouch
     }
 }
@@ -39,6 +42,16 @@ final class GameMTKView: MTKView {
 
     var smoothScaling = false {
         didSet { renderer?.smoothScaling = smoothScaling }
+    }
+
+    var background = UIColor.black {
+        didSet {
+            guard background != oldValue else { return }
+            backgroundColor = background
+            var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
+            background.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+            clearColor = MTLClearColor(red: red, green: green, blue: blue, alpha: 1)
+        }
     }
 
     private var renderer: DualScreenRenderer?

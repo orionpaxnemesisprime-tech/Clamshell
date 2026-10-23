@@ -14,10 +14,26 @@ struct SettingsView: View {
             Form {
                 Section {
                     Toggle("Always Show On-Screen Controls", isOn: $settings.alwaysShowTouchControls)
+                    Picker("Directional Control", selection: $settings.directionalControl) {
+                        ForEach(DirectionalControl.allCases) { control in
+                            Text(control.name).tag(control)
+                        }
+                    }
+                    Picker("Theme", selection: $settings.controlsTheme) {
+                        ForEach(ControlsTheme.allCases) { theme in
+                            Label {
+                                Text(theme.name)
+                            } icon: {
+                                ThemeSwatch(theme: theme)
+                            }
+                            .tag(theme)
+                        }
+                    }
+                    .pickerStyle(.navigationLink)
                 } header: {
                     Text("Controls")
                 } footer: {
-                    Text("Otherwise the on-screen controls hide while you play with a game controller, and come back when you touch the screen.")
+                    Text("Otherwise the on-screen controls hide while you play with a game controller, and come back when you touch the screen. The theme colours the controls and the background around the screens.")
                 }
 
                 Section("Display") {
@@ -25,13 +41,13 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    Toggle("Rumble Pak", isOn: $settings.rumblePak)
+                    Toggle("Rumble Accessory", isOn: $settings.rumblePak)
                 } header: {
                     Text("Accessories")
                 } footer: {
                     Text(RumbleOutput.isSupported
-                         ? "Games that support a Rumble Pak vibrate the device. Takes effect the next time a game starts."
-                         : "This device can’t vibrate, so Rumble Pak games play without vibration.")
+                         ? "Games that support the rumble accessory vibrate the device. Takes effect the next time a game starts."
+                         : "This device can’t vibrate, so games play without vibration.")
                 }
 
                 Section {
@@ -55,5 +71,24 @@ struct SettingsView: View {
                 }
             }
         }
+    }
+}
+
+/// A theme's background with a resting and a pressed button.
+private struct ThemeSwatch: View {
+    let theme: ControlsTheme
+
+    var body: some View {
+        HStack(spacing: 3) {
+            Circle().fill(Color(uiColor: theme.button).opacity(theme.buttonOpacity))
+            Circle().fill(Color(uiColor: theme.pressed).opacity(min(1, theme.buttonOpacity + 0.35)))
+        }
+        .padding(4)
+        .frame(width: 30, height: 20)
+        .background(Color(uiColor: theme.background), in: .rect(cornerRadius: 5))
+        .overlay {
+            RoundedRectangle(cornerRadius: 5).strokeBorder(.separator)
+        }
+        .accessibilityHidden(true)
     }
 }
