@@ -27,11 +27,42 @@ forbidden until the user decides.
   - upload, sync or share imported BIOS/firmware/ROMs to any server. That includes analytics
     and crash reports: never attach file contents, names or hashes.
 - Imported BIOS/firmware stays in the app container and can be deleted from Settings.
+- **Find Homebrew (link-out only)** — decided 2026-10-19: Clamshell may *link* to original
+  homebrew on its author's own release page (`HomebrewGame.catalog` in
+  `Clamshell/Views/FindHomebrewView.swift`), but never hosts, downloads or redistributes it
+  (no written permissions were obtained, so in-app downloads are not allowed). Each entry
+  must be:
+  - original work, not based on another company's games, characters or trademarks, and with
+    no themes that promote alcohol, drugs or tobacco (App Review 1.4.3);
+  - under a published licence that allows download;
+  - linked to its individual project or release page, never to a list or site that also
+    carries ports or ROMs of others' games;
+  - verified to boot in Clamshell;
+  - described in our own neutral words, with no third-party trademarks. Titles drop any
+    platform suffix or prefix ("Snake", not "Snake DS"); the builder refuses "DS",
+    "Nintendo" or ".nds" in any user-facing field.
+
+  The catalog is compiled into the app so App Review sees exactly what is linked.
+- **Catalog workflow:**
+  1. Add the game to `Scripts/homebrew/sources.json`.
+  2. Run `python3 -I Scripts/build-homebrew-catalog.py <scratch-dir> --default-icon <ref>...`.
+     It downloads to scratch only and boots each game in the `clamshell-catalog` verifier.
+  3. Review the screenshots with `clamshell-catalog --sheet`. They must be real title or
+     menu screens: no error screens, no photos of real people, nothing objectionable.
+  4. Use `manualCheck` only to override the "nearly blank" heuristic, after a human has
+     reviewed the screenshot.
+- **Icons:**
+  - A game's banner icon is bundled only if its licence clearly allows redistribution.
+  - **Never bundle SDK placeholder icons** (BlocksDS, devkitPro…): they depict console
+    hardware. Pass each as `--default-icon` (keep them outside the repo) so they're rejected.
+- **Downloads:** only the author's normal free download. Don't automate itch.io
+  name-your-price or purchase flows; leave those games out or have a person verify them.
 
 ## 2. Trademarks and trade dress
 
-- Never use "Nintendo", "DS", "DSi", "3DS", "Nintendo DS", "NDS" or any Nintendo game or
-  character name in any of these:
+- Never use "Nintendo", "DS", "DSi", "3DS", "Nintendo DS", "NDS", Nintendo accessory names
+  ("Rumble Pak": say "rumble accessory") or any Nintendo game or character name in any of
+  these:
   - app name, subtitle or keywords;
   - bundle display name or icon;
   - UI strings, in-app screenshots or App Store screenshots;
@@ -56,6 +87,9 @@ forbidden until the user decides.
   - `THIRD_PARTY_LICENSES`, updated in the **same commit** that adds, removes or bumps any
     dependency, vendored code, font, asset or test ROM. Each entry records name, version or
     commit, licence and source URL.
+- Bundled texts: `Scripts/update-licenses.sh` regenerates `Clamshell/Licenses/*.txt` (GPL text,
+  component list, and full third-party licence texts). Run it in the same commit as any
+  dependency change. `--check` detects drift.
 - In-app: Settings › Licenses shows the GPLv3 text, `THIRD_PARTY_LICENSES`, the disclaimer,
   and a link to the public source repository **and the exact tag** for this build.
 - **Corresponding source**: every shipped build is tagged. The public repo at that tag
@@ -117,6 +151,15 @@ forbidden until the user decides.
   Keep it current whenever such an API is added.
 - No tracking, no third-party analytics or ads, and no account. The App Privacy "nutrition
   label" is "Data Not Collected" unless the user explicitly approves a change.
+- **Approved change (2026-10-21): RevenueCat tip jar.** The optional tip jar uses the
+  RevenueCat SDK (MIT, pinned exact version). With a key configured, the App Privacy label
+  must declare **Purchases › Purchase History**: used for App Functionality, not linked to
+  the user, not used for tracking. Keep RevenueCat's attribution and ad-services options
+  off (no IDFA, no `enableAdServicesAttributionTokenCollection`), never set a custom app
+  user ID, and never put a RevenueCat secret key in the app.
+- **Tips** are consumable in-app purchases that unlock nothing (guideline 3.1.1); the UI
+  says so. External donation links (GitHub Sponsors) live only in the repo, never in the
+  app.
 - Microphone audio is processed in memory only. It is never recorded to disk or sent anywhere.
 
 ## Pre-submission checklist
@@ -125,6 +168,7 @@ forbidden until the user decides.
 2. The build tag is pushed publicly, and the source link in the app points at it.
 3. No Nintendo names or likeness in the name, icon, UI, screenshots or metadata;
    the disclaimer is present.
-4. No ROMs or BIOS in the bundle (inspect the `.app`), and no download or search URLs.
+4. No ROMs or BIOS in the bundle (`Scripts/check-app-bundle.sh` on the release `.app`; CI runs
+   it on every build), and no download or search URLs.
 5. No JIT entitlements or symbols. The privacy manifest and purpose strings are complete.
 6. The melonDS copyright-holder confirmation is on record (see §3).

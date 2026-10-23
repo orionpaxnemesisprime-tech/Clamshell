@@ -1,0 +1,5 @@
+module ClamshellBridge {
+    header "ClamshellBridge.h"
+    link "c++"
+    export *
+}

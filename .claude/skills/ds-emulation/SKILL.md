@@ -51,45 +51,47 @@ The rules are fixed:
   **No GDB stub**: `-DENABLE_GDBSTUB=OFF`.
 - Static only. Build the `core` target (`add_library(core STATIC ...)` in `src/CMakeLists.txt`).
 
-Build one slice per platform and package them as an XCFramework:
+Build it with **`Scripts/build-core.sh [Release|Debug]`** (needs cmake and ninja from
+Homebrew). The script:
 
-```sh
-# Device slice. Repeat with -DCMAKE_OSX_SYSROOT=iphonesimulator, and a macOS slice
-# (no CMAKE_SYSTEM_NAME) so `swift test` can run on the host.
-cmake -S Vendor/melonDS -B build/ios -G Ninja \
-  -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos \
-  -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=27.0 \
-  -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF \
-  -DENABLE_JIT=OFF -DBUILD_QT_SDL=OFF -DENABLE_OGLRENDERER=OFF -DENABLE_GDBSTUB=OFF
-cmake --build build/ios --target core
-# Merge libcore.a + libteakra.a with libtool -static, then:
-xcodebuild -create-xcframework -library <ios>.a -headers <hdrs> \
-  -library <sim>.a -headers <hdrs> -library <macos>.a -headers <hdrs> -output MelonDSCore.xcframework
-```
+- configures `Core/Bridge/CMakeLists.txt`, which pulls in `Vendor/melonDS` and forces the
+  forbidden options off (JIT, Qt/SDL, OpenGL, GDB stub, and LTO, since LLVM bitcode in
+  archives is fragile);
+- builds iOS device, iOS Simulator and macOS (host-test) arm64 slices;
+- merges `libClamshellBridge.a`, `libcore.a` and `libteakra.a` with `libtool`;
+- **fails if any `ARMJIT`/`JitBlock` symbol is defined, or `mprotect`, `vm_protect`,
+  `pthread_jit_write_protect_np` or `sys_icache_invalidate` is referenced**. A JIT-on control
+  build was verified to trip it;
+- writes `Packages/ClamshellCore/Artifacts/ClamshellBridge.xcframework` (gitignored, about
+  30 MB).
 
-- Vendor melonDS as a **git submodule pinned to a commit**. Never track `master`. Record the
-  commit in `THIRD_PARTY_LICENSES`.
+Notes:
+
+- Re-run the script after any change under `Core/Bridge/` or `Vendor/melonDS`.
+- melonDS is a **git submodule pinned to a commit** (currently `906e9eb`). Never track
+  `master`. Record the commit in `THIRD_PARTY_LICENSES`.
 - Keep Clamshell patches to melonDS minimal, as a patch series under `Vendor/patches/`, and
   upstream them where possible.
 - The build script lives in the repo (for example `Scripts/build-melonds.sh`) and is
   reproducible, because GPL "corresponding source" includes the scripts used to build.
 
-## Swift / C++ interop
+## Swift / C++ interop (as built)
 
-- Keep melonDS headers away from Swift. They use `std::unique_ptr`, `std::function`,
-  templates and `NonStupidBitfield`, and importing them is slow and fragile.
-- Write a **thin C++ bridge target** (for example `ClamshellCoreBridge`) that owns
-  `melonDS::NDS` and exposes a small facade. Use only plain types: `uint32_t` key masks,
-  `int16_t*` buffers, POD structs, and `std::span`/pointer plus length.
-- Implement every `melonDS::Platform::*` function in that bridge. Route calls to Swift through a
-  table of C function pointers plus an opaque `void* userdata` (`NDS::UserData`), and use
-  `Unmanaged` on the Swift side. Swift must never implement C++ symbols directly.
-- Enable C++ interop (`.interoperabilityMode(.Cxx)`) only on the target that imports the bridge,
-  because the setting is viral. Everything above that target sees a pure-Swift API.
-- Make the facade a reference type with an explicit lifetime: `SWIFT_SHARED_REFERENCE` with
-  retain/release, or a non-copyable Swift wrapper. Don't expose copyable C++ classes that own
-  the machine.
-- C++ exceptions must not cross into Swift. Catch inside the bridge and return status codes.
+- Swift never sees C++. `Core/Bridge/` compiles inside the static library: `Bridge.cpp`
+  (owns `melonDS::NDS`) and `Platform.cpp` (every `melonDS::Platform::*` function). It
+  exposes a **plain C header**, `Core/Bridge/include/ClamshellBridge.h`, as module
+  `ClamshellBridge`. Swift imports it with no `.interoperabilityMode(.Cxx)` anywhere.
+- To add a capability:
+  1. extend the C header (plain types only: ints, pointers plus length, C enums and structs);
+  2. implement it in `Bridge.cpp`;
+  3. wrap it in `Packages/ClamshellCore/Sources/ClamshellCore/EmulatorCore.swift`;
+  4. run `Scripts/build-core.sh`.
+- Callbacks into Swift go through `ClamshellCoreCallbacks` (C function pointers plus a
+  `context`). `EmulatorCore` sets `context` to an unretained `Unmanaged` pointer to itself,
+  and the core never outlives it. `Platform::Log` has no per-instance userdata, so logging
+  uses the process-wide `clamshell_set_log_handler`.
+- C++ exceptions must not cross the C boundary. Catch inside the bridge and return a status.
+- `Bridge.cpp` contains `#error` if `JIT_ENABLED` is defined.
 
 ## Threading model
 
@@ -141,6 +143,13 @@ xcodebuild -create-xcframework -library <ios>.a -headers <hdrs> \
 
 ## Audio
 
+- **Swift 6 isolation trap:** never build a Core Audio render block (or an input tap) inside
+  a `@MainActor` type's methods. The closure inherits main-actor isolation, and the runtime
+  traps (SIGTRAP in `_swift_task_checkIsolatedSwift` on `AURemoteIO::IOThread`) the first time
+  audio renders. Unit tests won't catch it. Build such blocks in a `nonisolated static`
+  factory, as `AudioOutput.makeSourceNode` does. The app target defaults to `MainActor`
+  isolation, so this applies to all app code too.
+
 - Set `NDSArgs.OutputSampleRate` to the hardware rate from `AVAudioSession` (usually
   48000). `SPU::ReadOutput(s16*, samples)` gives interleaved stereo `s16`.
 - Emu thread → **lock-free single-producer/single-consumer ring buffer** → an
@@ -162,7 +171,15 @@ xcodebuild -create-xcframework -library <ios>.a -headers <hdrs> \
   the count; it must never block.
 - Only request mic permission on the first `Mic_Start` (needs `NSMicrophoneUsageDescription`).
   If permission is denied, feed silence and provide a "blow" button (the Qt frontend has
-  `mic_blow.h`).
+  `mic_blow.h`; not built yet).
+- Blow: `MicrophoneInput.isBlowing` replays melonDS's recorded blow (`mic_blow.h`, exposed as
+  `EmulatorCore.blowSamples`) instead of live input. The BLOW on-screen control appears only
+  while a game has the mic open (`MicrophoneInput.onActiveChanged`).
+- As built: `MicrophoneInput` (an `AVAudioEngine` tap, then `AVAudioConverter`, then a
+  `MonoSampleRing`) is passed to `EmulationSession(microphone:)`. The session's core delegate
+  opens and closes it on the game's `Mic_Start`/`Mic_Stop`. It switches the audio session to
+  `.playAndRecord` while open, and `AudioOutput` restarts itself on the resulting engine
+  configuration change.
 
 ## Input and touch mapping
 
@@ -200,6 +217,15 @@ xcodebuild -create-xcframework -library <ios>.a -headers <hdrs> \
   - Use hysteresis: lid closed below about 10°, open above about 30°.
   - Always offer a manual lid toggle, because some games use lid close as a mechanic.
 
+## Rumble
+
+- melonDS models rumble as the Slot-2 Rumble Pak add-on. `EmulationSession.start(rumblePak:)`
+  inserts it (Settings › Rumble Pak, on by default).
+- Each motor toggle arrives as `Addon_RumbleStart(16 ms)`/`Stop`. These are forwarded to a
+  `RumbleSink`; `RumbleOutput` plays short Core Haptics continuous events. The Simulator
+  can't vibrate.
+- `savetest` pulses the motor twice, which is how the tests verify it.
+
 ## Saves, save states, BIOS and firmware
 
 - **Battery saves**: load into `NDSCartArgs.SRAM` before `ParseROM`. melonDS calls
@@ -209,6 +235,15 @@ xcodebuild -create-xcframework -library <ios>.a -headers <hdrs> \
   app termination.
 - Key saves by the ROM's SHA-1 (not file name), and store them in the app container
   (Documents/Saves, exposed through Files). Provide import and export.
+- **Homebrew SD card (DLDI)**: libnds homebrew reads its files through a DLDI SD card.
+  Without one, ds-craft stops with "error initializing FAT". Each game gets
+  `Application Support/SDCards/<rom sha1>.img` (256 MB; APFS stores it sparsely, so it's
+  only a few MB on disk). It's passed as `loadROM(sdCard:)`, and melonDS creates and formats
+  it. Retail carts ignore it.
+- **Save states** (as built): `EmulationSession.saveState()`/`loadState(_:)` are async
+  commands drained on the emulation thread, also while paused. `StateStore` writes
+  `Documents/States/<rom sha1>/slot-N.state` (CLSS header, ROM check, LZFSE-compressed:
+  raw states are about 19 MB) plus a PNG thumbnail.
 - **Save states**: run them only on the emu thread, between frames. Create a
   `Savestate(buffer, size, save)` and call `nds.DoSavestate(&st)`, then check `st.Error`.
   Prefix each state with a Clamshell header (magic, Clamshell version, melonDS commit, ROM
@@ -227,11 +262,31 @@ xcodebuild -create-xcframework -library <ios>.a -headers <hdrs> \
 - Tests drive the bridge with the soft renderer only: no Metal, no audio engine, no UI.
   Include a macOS slice in the XCFramework so the core suite runs with `swift test`. Run the
   iOS simulator suite through MobileBuildMCP or `xcodebuild test`.
-- **Test ROMs**: use only open-source homebrew whose licence allows redistribution. Prefer
-  ROMs built **in this repo from source** with BlocksDS/libnds, for example
-  `Tests/ROMs/<name>/`, built by a script with the outputs checked in plus their SHA-256.
-  Each ROM signals its result deterministically: it writes a magic word to a fixed main-RAM
-  address, or draws a known pattern. Third-party CPU test ROMs (for example the armwrestler
+- **Test ROMs**: use only open-source homebrew whose licence allows redistribution.
+  - Prefer ROMs built **in this repo from source**:
+    1. Write ARM assembly in `Packages/ClamshellCore/TestROMs/<name>/arm9.s` and `arm7.s`.
+    2. Run `python3 -I Scripts/make-test-rom.py Packages/ClamshellCore/TestROMs/<name>
+       Packages/ClamshellCore/Tests/ClamshellCoreTests/ROMs/<name>.nds`.
+    3. Check in both the sources and the `.nds`.
+  - The generator uses Xcode's clang. It rejects code with relocations and leaves the header
+    logo zeroed.
+  - Use BlocksDS/libnds when a test needs C, for example to drive the touchscreen controller
+    from the ARM7.
+  - Each ROM signals its result deterministically. `smoketest` writes `0xC1A55E11` at
+    `0x02200000`, echoes KEYINPUT at `+4`, keeps a loop counter at `+8`, and draws known
+    colours. Read these with `EmulatorCore.debugRead32`; direct boot leaves the ARM9 data
+    cache off.
+  - Homebrew images (the default) get **no save memory**. For save tests, build a
+    cartridge-style image with `--game-code ZCLS --arm9-offset 0x8000`; melonDS then assumes a
+    64 Kbit EEPROM. `savetest` keeps a boot counter there over AUXSPI.
+  - In assembly, call subroutines with `mov lr, pc` then `b label`: `bl` always emits a
+    relocation, which the generator rejects.
+  - Existing ROMs:
+    - `smoketest`: boot, framebuffer, keys.
+    - `iotest`: TSC touch paint, PSG tone while touching, mic while X is held, top screen red
+      while a key is held.
+    - `savetest`: EEPROM.
+  - Don't name a test resource folder `Resources`: codesign rejects such iOS test bundles. Third-party CPU test ROMs (for example the armwrestler
   family) may be added only after confirming their licence. Record the licence in
   `THIRD_PARTY_LICENSES`.
 - Test patterns:
@@ -246,3 +301,8 @@ xcodebuild -create-xcframework -library <ios>.a -headers <hdrs> \
   Keep frame counts small; a test that needs more than a few seconds of emulated time belongs
   in a separate, tagged slow suite.
 - Never use commercial ROMs in tests, CI, screenshots or bug reproductions.
+- **External homebrew smoke test (local only):** `CLAMSHELL_EXTERNAL_ROM=/path/game.nds swift
+  test --filter ExternalROMTests`. It boots with an SD image, runs 600 frames, reports fps,
+  and writes a PNG of both screens. It's verified with ds-craft beta 1.7.1 (MIT,
+  github.com/moltony/ds-craft), which reaches its title and world-select screens. Keep such
+  ROMs out of the repo.

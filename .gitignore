@@ -1,0 +1,12 @@
+# Build output
+.build/
+DerivedData/
+Packages/ClamshellCore/Artifacts/
+Packages/ClamshellCore/.swiftpm/
+
+# Xcode user state
+xcuserdata/
+*.xcuserstate
+
+# macOS
+.DS_Store

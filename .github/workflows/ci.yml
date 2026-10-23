@@ -1,0 +1,68 @@
+# Builds the core, runs the core tests and builds the app on every push and pull request.
+# SPDX-License-Identifier: GPL-3.0-or-later
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    # GitHub names its macOS images after the Xcode major version they carry.
+    runs-on: xcode-27
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - name: Select Xcode 27
+        run: |
+          # The newest Xcode 27: the fold and hinge APIs need the iOS 27.1+ SDK at compile time.
+          ls -d /Applications/Xcode*.app
+          xcode=$(ls -d /Applications/Xcode_27*.app 2>/dev/null | sort -V | tail -1)
+          if [ -z "$xcode" ]; then
+            echo "::error::This runner has no Xcode 27; Clamshell needs the iOS 27.1+ SDK."
+            exit 1
+          fi
+          sudo xcode-select -s "$xcode"
+          xcodebuild -version
+          sdk=$(xcrun --sdk iphonesimulator --show-sdk-version)
+          if [ "$(printf '%s\n' 27.1 "$sdk" | sort -V | head -1)" != 27.1 ]; then
+            echo "::error::$xcode has the iOS $sdk SDK; Clamshell needs 27.1 or later."
+            exit 1
+          fi
+
+      - name: Install build tools
+        run: brew install cmake ninja
+
+      - name: Download the Metal toolchain
+        run: xcodebuild -downloadComponent MetalToolchain
+
+      # Also fails if any JIT code or executable-memory API reaches the core.
+      - name: Build the core
+        run: Scripts/build-core.sh Release
+
+      - name: Check bundled licence texts
+        run: Scripts/update-licenses.sh --check
+
+      # Serial, so the real-time pacing test isn't starved by other suites' emulators on the
+      # runner's few cores.
+      - name: Core tests
+        run: swift test --package-path Packages/ClamshellCore --no-parallel
+
+      - name: Build the app
+        run: |
+          xcodebuild -project Clamshell.xcodeproj -scheme Clamshell \
+            -destination 'generic/platform=iOS Simulator' -derivedDataPath build \
+            ARCHS=arm64 CODE_SIGNING_ALLOWED=NO -quiet build
+
+      - name: Check the app bundle
+        run: Scripts/check-app-bundle.sh build/Build/Products/Debug-iphonesimulator/Clamshell.app

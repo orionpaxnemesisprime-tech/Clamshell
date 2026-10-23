@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Partial Info.plist merged with the generated one (GENERATE_INFOPLIST_FILE = YES).
+  Kept outside the synchronized Clamshell/ folder so it isn't copied as a resource.
+  Declares Clamshell's own game file type (.nds) so games open from Files and the share sheet.
+-->
+<plist version="1.0">
+<dict>
+	<!-- Only standard HTTPS (the tip jar's store requests): exempt from export compliance. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<!-- RevenueCat public SDK key (appl_…) for the optional tip jar; empty hides it. -->
+	<key>RevenueCatAPIKey</key>
+	<string>$(REVENUECAT_API_KEY)</string>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.foldingduo.clamshell.game</string>
+			<key>UTTypeDescription</key>
+			<string>Handheld Game</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>nds</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Handheld Game</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.foldingduo.clamshell.game</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>
