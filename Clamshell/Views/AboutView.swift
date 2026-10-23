@@ -9,6 +9,19 @@ struct AboutView: View {
     /// GPLv3 needs the corresponding source to be available (see app-store-compliance).
     static let sourceRepository: URL? = URL(string: "https://github.com/orionpaxnemesisprime-tech/Clamshell")
 
+    /// Every shipped build is tagged `v<version>-<build>` (e.g. v1.0-1) by `Scripts/archive.sh`.
+    private static var sourceTag: String {
+        let info = Bundle.main.infoDictionary
+        let short = info?["CFBundleShortVersionString"] as? String ?? "?"
+        let build = info?["CFBundleVersion"] as? String ?? "?"
+        return "v\(short)-\(build)"
+    }
+
+    /// This build's tag in the public repository.
+    private static var sourceURL: URL? {
+        sourceRepository?.appending(path: "tree/\(sourceTag)")
+    }
+
     private var version: String {
         let info = Bundle.main.infoDictionary
         let short = info?["CFBundleShortVersionString"] as? String ?? "?"
@@ -20,8 +33,8 @@ struct AboutView: View {
         List {
             Section {
                 LabeledContent("Version", value: version)
-                if let url = Self.sourceRepository {
-                    Link("Source Code", destination: url)
+                if let url = Self.sourceURL {
+                    Link("Source Code (\(Self.sourceTag))", destination: url)
                 }
             } footer: {
                 Text("Clamshell is free software, licensed under the GNU General Public License version 3.")

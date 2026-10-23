@@ -7,6 +7,9 @@
 -->
 <plist version="1.0">
 <dict>
+	<!-- Only standard HTTPS (the tip jar's store requests): exempt from export compliance. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<!-- RevenueCat public SDK key (appl_…) for the optional tip jar; empty hides it. -->
 	<key>RevenueCatAPIKey</key>
 	<string>$(REVENUECAT_API_KEY)</string>

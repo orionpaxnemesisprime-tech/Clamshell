@@ -41,7 +41,7 @@ App pieces in `Clamshell/`:
 Repo layout:
 - `Vendor/melonDS`: pinned submodule.
 - `Core/Bridge`: C++ bridge and its CMake build.
-- `Scripts/`: `build-core.sh` and `make-test-rom.py`.
+- `Scripts/`: `build-core.sh`, `archive.sh` (release) and `make-test-rom.py`.
 - `Packages/ClamshellCore`: Swift API, tests and test ROMs.
 - `Clamshell/`: the app.
 
@@ -94,7 +94,12 @@ All geometry comes from `GeometryReader`/`onGeometryChange`. Never hardcode devi
 - After changing any dependency or `THIRD_PARTY_LICENSES`, run `Scripts/update-licenses.sh`. It
   regenerates the full licence texts bundled in the app (`Clamshell/Licenses`, shown in About).
   `--check` fails if they are stale.
-- `AboutView.sourceRepository` must be set to the public repo before any release.
+- `AboutView.sourceRepository` must be set to the public repo before any release. About links
+  to this build's tag, `v<MARKETING_VERSION>-<CURRENT_PROJECT_VERSION>` (e.g. `v1.0-1`).
+- Release: bump `CURRENT_PROJECT_VERSION`, commit, then
+  `REVENUECAT_API_KEY=appl_… Scripts/archive.sh`. It refuses a dirty tree or a non-App Store
+  key, archives to `.build/archive/`, runs the bundle check and tags the commit locally. Pushing
+  the tag and uploading are separate, outward-facing steps: confirm with the user first.
 
 - The whole app is GPLv3. Keep `LICENSE`, `THIRD_PARTY_LICENSES` and an in-app licence
   screen, and tag every shipped build in the public repo.
