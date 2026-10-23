@@ -7,6 +7,9 @@
 -->
 <plist version="1.0">
 <dict>
+	<!-- RevenueCat public SDK key (appl_…) for the optional tip jar; empty hides it. -->
+	<key>RevenueCatAPIKey</key>
+	<string>$(REVENUECAT_API_KEY)</string>
 	<key>UTExportedTypeDeclarations</key>
 	<array>
 		<dict>

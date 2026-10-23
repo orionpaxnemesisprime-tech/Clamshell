@@ -53,6 +53,14 @@ melonDS
   src/ARMJIT*, src/debug, src/net (libslirp, pcap), src/frontend, OpenGL shaders.
 
 
+RevenueCat purchases-ios (RevenueCat module only, for the optional tip jar)
+  Version:  5.94.0 (Swift package, exact version)
+  Licence:  MIT (Scripts/licenses/purchases-ios-LICENSE.txt)
+  Source:   https://github.com/RevenueCat/purchases-ios
+  Copyright (c) 2024 RevenueCat, Inc.
+  Talks to RevenueCat's servers only when a tip-jar key is configured. Its privacy
+  manifest declares Purchase History (not linked to the user, not used for tracking).
+
 Test content (not shipped in the app)
 -------------------------------------
 

@@ -151,6 +151,15 @@ forbidden until the user decides.
   Keep it current whenever such an API is added.
 - No tracking, no third-party analytics or ads, and no account. The App Privacy "nutrition
   label" is "Data Not Collected" unless the user explicitly approves a change.
+- **Approved change (2026-10-21): RevenueCat tip jar.** The optional tip jar uses the
+  RevenueCat SDK (MIT, pinned exact version). With a key configured, the App Privacy label
+  must declare **Purchases › Purchase History**: used for App Functionality, not linked to
+  the user, not used for tracking. Keep RevenueCat's attribution and ad-services options
+  off (no IDFA, no `enableAdServicesAttributionTokenCollection`), never set a custom app
+  user ID, and never put a RevenueCat secret key in the app.
+- **Tips** are consumable in-app purchases that unlock nothing (guideline 3.1.1); the UI
+  says so. External donation links (GitHub Sponsors) live only in the repo, never in the
+  app.
 - Microphone audio is processed in memory only. It is never recorded to disk or sent anywhere.
 
 ## Pre-submission checklist

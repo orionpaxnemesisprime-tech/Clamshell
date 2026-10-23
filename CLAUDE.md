@@ -177,6 +177,11 @@ All geometry comes from `GeometryReader`/`onGeometryChange`. Never hardcode devi
     `Scripts/build-homebrew-catalog.py` from `Scripts/homebrew/sources.json`.
   - Games are verified with the package's `clamshell-catalog` tool.
   - Rules are in the app-store-compliance skill.
+- **Tip jar:** `Clamshell/Support/TipJar.swift` (RevenueCat, consumable tips that unlock
+  nothing), shown in Settings only when the `REVENUECAT_API_KEY` build setting holds a
+  RevenueCat public SDK key (`appl_…`, or `test_…` for RevenueCat's Test Store). Products:
+  `com.foldingduo.Clamshell.tip.{small,medium,large}`. Use the RevenueCat MCP for dashboard
+  setup; privacy rules are in the app-store-compliance skill.
 - **Resume:** the hidden save-state slot 99, written on background and on close; the library
   shows it as Continue.
 

@@ -50,6 +50,9 @@ cp "$ROOT/THIRD_PARTY_LICENSES" "$OUT/ThirdPartyComponents.txt"
     section "SHA-1 in C (public domain)"
     printf 'SHA-1 in C\nBy Steve Reid <steve@edmweb.com>\n100%% Public Domain\n'
 
+    section "RevenueCat purchases-ios (MIT)"
+    cat "$ROOT/Scripts/licenses/purchases-ios-LICENSE.txt"
+
     section "blip_buf (GNU LGPL v2.1 or later)"
     printf 'Library Copyright (C) 2003-2009 Shay Green.\n\n'
     cat "$SRC/blip-buf/license.txt"

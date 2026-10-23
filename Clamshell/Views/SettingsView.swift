@@ -59,6 +59,8 @@ struct SettingsView: View {
                     Text("Folding the device almost shut closes the console’s lid, which puts many games to sleep. You can also close the lid from the game menu.")
                 }
 
+                TipJarSection()
+
                 Section {
                     NavigationLink("About Clamshell") { AboutView() }
                 }
